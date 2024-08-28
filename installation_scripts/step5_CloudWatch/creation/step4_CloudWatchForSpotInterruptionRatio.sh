@@ -1,7 +1,9 @@
 #!/bin/bash
 
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
+# This is for updating the Spot Interruption Frequency in DynamoDB.
+
+source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
+conda activate MultiCloudGalaxy
 
 # Function to check the stack status
 check_stack_status() {
@@ -80,17 +82,16 @@ get_config_value() {
   fi
 }
 
+
 ######################  MAIN  ######################
-FILENAME="template_CloudWatchForLambdaForUpdatingSpotPrice.yaml"
+#REGION=$(awk -F "=" '/Region_DynamoForSpotInterruptionRatio/ {print $2}' ../conf.ini | tr -d ' ')
+REGION=$(get_config_value "Region_DynamoForSpotInterruptionRatio")
+# CloudFormation stack details
+FILENAME="template_step4_CloudWatchForSpotInterruptionRatio.yaml"
+#STACK_NAME=$(awk -F "=" '/StackName_CloudwatchForSpotInterruptionRatio/ {print $2}' ../conf.ini | tr -d ' ')
+STACK_NAME=$(get_config_value "StackName_CloudwatchForSpotInterruptionRatio")
 DESIRED_STATUS_CREATE="CREATE_COMPLETE"
 DESIRED_STATUS_UPDATE="UPDATE_COMPLETE"
-
-#REGION=$(awk -F "=" '/Region_DynamodbForSpotPrice/ {print $2}' ../conf.ini | tr -d ' ')
-REGION=$(get_config_value "Region_DynamodbForSpotPrice")
-
-#STACK_NAME=$(awk -F "=" '/StackName_CloudWatchForSpotPrice/ {print $2}' ../conf.ini | tr -d ' ')
-STACK_NAME=$(get_config_value "StackName_CloudWatchForSpotPrice")
-
 
 # Main execution
 create_or_update_stack "$STACK_NAME" "$FILENAME" "$REGION" "$DESIRED_STATUS_CREATE" "$DESIRED_STATUS_UPDATE"

@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Single Region Deployment Script for CloudWatch Event Rule and Lambda Function for Step Function for Open Spot Status
-
 CONDA_BASE=$(conda info --base)
 source "$CONDA_BASE/etc/profile.d/conda.sh"
 

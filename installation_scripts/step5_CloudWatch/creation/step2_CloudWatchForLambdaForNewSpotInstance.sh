@@ -1,5 +1,5 @@
 #!/bin/bash
-# Multiple Regions - Deploy CloudWatch for Step Function for New Spot Instance
+
 CONDA_BASE=$(conda info --base)
 source "$CONDA_BASE/etc/profile.d/conda.sh"
 
