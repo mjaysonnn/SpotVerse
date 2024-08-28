@@ -1,0 +1,2 @@
+us-east-1 sg-0d0bcb1c659c9ad8a
+eu-north-1 sg-00066e6b45dc18900

@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  This CloudFormation template creates a Lambda function that fetches spot placement scores. 
+  The function is sourced from an S3 object, set up with a specific handler and role, and runs 
+  with a Python 3.11 runtime with a 15-minute timeout.
+
+Parameters:
+  LambdaCodeBucket:
+    Description: Name of the S3 bucket containing the Lambda function code.
+    Type: String
+    Default: mj-aws-lambda-code-us-east-1  # Default bucket name
+
+  LambdaCodeS3Key:
+    Description: S3 key for the Lambda function code.
+    Type: String
+    Default: lambda_check_open_spot_request.zip  # Default S3 key
+
+Resources:
+  SpotPlacementScoreFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: LambdaInterruptionRatio
+      Handler: LambdaInterruptionRatio.lambda_handler
+      Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LambdaWithAdminAccess'
+      Code:
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref LambdaCodeS3Key
+      Runtime: python3.11
+      Timeout: 900
+
+Outputs:
+  LambdaFunctionARN:
+    Description: 'Lambda Function ARN'
+    Value: !GetAtt SpotPlacementScoreFunction.Arn

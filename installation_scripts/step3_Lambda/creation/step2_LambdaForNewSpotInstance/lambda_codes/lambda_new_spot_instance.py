@@ -1,0 +1,415 @@
+import base64
+import configparser
+import json
+import os
+import re
+import time
+from datetime import datetime
+from datetime import timezone
+from decimal import Decimal
+
+import boto3
+
+# Initialize the parser and read the ini file
+config = configparser.ConfigParser()
+config.read('./conf.ini')
+regions_string = config.get('settings', 'regions_to_use')
+target_regions = [region.strip() for region in regions_string.split(',')]
+
+SLEEP_TIME_SPOT_REQUEST = 30  # seconds
+complete_bucket_name = config.get('settings', 'complete_s3_bucket_name')
+interrupt_s3_bucket_name = config.get('settings', 'interrupt_s3_bucket_name')
+sleep_time = int(config.get('settings', 'sleep_time'))
+number_of_spot_instances = 1
+factor = Decimal(config.getfloat('settings', 'spot_price_factor'))
+instance_type = config.get('settings', 'instance_type')
+key_name = config.get('settings', 'key_name')
+spot_status_s3_bucket_name = config.get('settings', 'spot_tracking_s3_bucket_name')
+Region_DynamodbForSpotPrice = config.get('settings', 'Region_DynamodbForSpotPrice')
+on_demand_price = float(config.get('settings', 'on_demand_price'))
+
+print(f"Configured target regions: {target_regions}")
+print(f"target_regions: {target_regions}")
+print(f"Factor from conf.ini: {factor}")
+print(f"sleep_time: {sleep_time}")
+print(f"number_of_spot_instances: {number_of_spot_instances}")
+print(f"instance_type: {instance_type}")
+print(f"key_name: {key_name}")
+print(f"complete_bucket_name: {complete_bucket_name}")
+print(f"interrupt_bucket_name: {interrupt_s3_bucket_name}")
+print("SLEEP_TIME_SPOT_REQUEST: ", SLEEP_TIME_SPOT_REQUEST)
+print(f"spot_status_bucket_name: {spot_status_s3_bucket_name}")
+print(f"Region_DynamodbForSpotPrice: {Region_DynamodbForSpotPrice}")
+print(f"on_demand_price: {on_demand_price}")
+
+s3_client = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb', region_name=Region_DynamodbForSpotPrice)
+table = dynamodb.Table('SpotPriceCostTable')
+ec2_client = boto3.client('ec2')
+region_for_lambda_env = os.environ['AWS_REGION']
+
+
+def check_object_exists_in_s3(s3_client, bucket_name, object_key):
+    try:
+        s3_client.head_object(Bucket=bucket_name, Key=object_key)
+        return True
+    except Exception as e:
+        return False
+
+
+def extract_value(pattern, content):
+    return match[1] if (match := re.search(pattern, content)) else None
+
+
+def get_aws_credentials_from_file(filename='credentials.txt'):
+    with open(filename, 'r') as f:
+        content = f.read()
+
+    aws_access_key_id_pattern = r'export AWS_ACCESS_KEY_ID="([^"]+)"'
+    aws_secret_access_key_pattern = r'export AWS_SECRET_ACCESS_KEY="([^"]+)"'
+
+    return {
+        'AWS_ACCESS_KEY_ID': extract_value(aws_access_key_id_pattern, content),
+        'AWS_SECRET_ACCESS_KEY': extract_value(aws_secret_access_key_pattern, content),
+    }
+
+
+def add_instance_id_to_s3(instance_id, s3_client, event):
+    termination_time = event.get('time', None)
+    region = event.get('region', 'N/A')
+
+    try:
+
+        # Fetch instance details
+        ec2_client = boto3.client('ec2', region_name=region)
+        response = ec2_client.describe_instances(InstanceIds=[instance_id])
+        instance_details = response['Reservations'][0]['Instances'][0]
+
+        availability_zone = instance_details['Placement']['AvailabilityZone']
+        ec2_instance_type = instance_details['InstanceType']
+        launch_time = instance_details['LaunchTime'].strftime('%Y-%m-%dT%H:%M:%SZ')  # Format launch time
+        current_time = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        # Get the current spot price for the instance type in its availability zone
+        spot_price_response = ec2_client.describe_spot_price_history(
+            InstanceTypes=[ec2_instance_type],
+            AvailabilityZone=availability_zone,
+            ProductDescriptions=['Linux/UNIX'],
+            MaxResults=1
+        )
+
+        current_spot_price = spot_price_response['SpotPriceHistory'][0]['SpotPrice']
+
+        # Prepare the data to be written to S3
+        data = (
+            f"Instance ID: {instance_id}\n"
+            f"Region: {region}\n"
+            f"Availability Zone: {availability_zone}\n"
+            f"Instance Type: {ec2_instance_type}\n"
+            f"Instance Launch Time: {launch_time}\n"
+            f"Spot Interruption Warning Time: {termination_time}\n"
+            f"Current Spot Price: {current_spot_price}"
+        )
+
+    except Exception as e:
+        # In case of any exception, prepare data with instance_id, termination_time, resources, and region
+        print(f"An error occurred: {str(e)}. Uploading Instance ID, Termination Time, Resources, and Region...")
+        termination_time = event.get('time', 'N/A')
+        resources = ', '.join(event.get('resources', []))
+        data = (
+            f"Instance ID: {instance_id}\n"
+            f"Region: {region}\n"
+            f"Spot Interruption Warning Time: {termination_time}\n"
+            f"Resources: {resources}"
+        )
+
+    try:
+        buckets = [bucket['Name'] for bucket in s3_client.list_buckets()['Buckets']]
+        if interrupt_s3_bucket_name not in buckets:
+            print(f"Bucket '{interrupt_s3_bucket_name}' does not exist. Creating it...")
+            s3_client.create_bucket(Bucket=interrupt_s3_bucket_name)
+            print(f"Bucket '{interrupt_s3_bucket_name}' created successfully.")
+        else:
+            print(f"Bucket '{interrupt_s3_bucket_name}' already exists.")
+
+        object_key = f'{instance_id}.txt'
+        s3_client.put_object(Bucket=interrupt_s3_bucket_name, Key=object_key, Body=data.encode('utf-8'))
+        print("Data:", data)
+        print(f"Uploaded instance details for {instance_id} to S3 bucket {interrupt_s3_bucket_name}.")
+
+    except Exception as e:
+        print(f"An error occurred during S3 operations: {str(e)}")
+
+
+def get_values_from_file(filename):
+    values = {}
+    with open(f"./{filename}", 'r') as f:
+        for line in f:
+            key, value = line.strip().split(' ')
+            values[key] = value
+    return values
+
+
+def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name):
+    script = f"""#!/bin/bash
+
+                export AWS_ACCESS_KEY_ID="{aws_credentials['AWS_ACCESS_KEY_ID']}"
+                export AWS_SECRET_ACCESS_KEY="{aws_credentials['AWS_SECRET_ACCESS_KEY']}"
+
+                # Initializing the log
+                echo "Starting script" >/var/log/user-data.log
+
+                # Appending all standard output and error messages to the log file
+                exec > >(tee -a /var/log/user-data.log) 2>&1
+
+                echo "Sleeping for {sleep_time} seconds..."
+                sleep {sleep_time}
+
+                echo "Retrieving the instance ID using ec2-metadata..."
+                INSTANCE_ID=$(ec2-metadata -i | cut -d " " -f 2)
+                echo "Instance ID retrieved: $INSTANCE_ID"
+
+                # Get the Spot Instance Request ID
+                SPOT_REQUEST_ID=$(aws ec2 describe-instances --instance-id $INSTANCE_ID --query "Reservations[0].Instances[0].SpotInstanceRequestId" --output text)
+                echo "Spot Instance Request ID retrieved: $SPOT_REQUEST_ID"
+                
+                # Get the region from the Availability Zone
+                REGION=$(ec2-metadata -z | cut -d " " -f 2 | sed 's/.$//')
+                echo "Region retrieved: $REGION"
+                            
+                # Check if the file exists in the spot_check_interruption bucket
+                CHECK_KEY="open/${{REGION}}|${{SPOT_REQUEST_ID}}.txt"
+                echo "Checking if file $CHECK_KEY exists in bucket {spot_status_s3_bucket_name}..."
+                if aws s3api head-object --bucket "{spot_status_s3_bucket_name}" --key "$CHECK_KEY" 2>/dev/null; then
+                    echo "File $CHECK_KEY exists in bucket. No further action required."
+                    aws s3api delete-object --bucket "{spot_status_s3_bucket_name}" --key "$CHECK_KEY"
+                else
+                    echo "File $CHECK_KEY does not exist in bucket {spot_status_s3_bucket_name}. Skipping..."
+                fi
+
+                # Retrieve instance details and spot price information
+                INSTANCE_TYPE=$(ec2-metadata -t | cut -d " " -f 2)
+                AVAILABILITY_ZONE=$(ec2-metadata -z | cut -d " " -f 2)
+                LAUNCH_TIME=$(aws ec2 describe-instances \
+                  --instance-id $INSTANCE_ID \
+                  --query "Reservations[0].Instances[0].LaunchTime" \
+                  --output text)
+                CURRENT_SPOT_PRICE=$(aws ec2 describe-spot-price-history \
+                  --instance-types $INSTANCE_TYPE \
+                  --availability-zone $AVAILABILITY_ZONE \
+                  --product-descriptions "Linux/UNIX" \
+                  --max-results 1 \
+                  --query "SpotPriceHistory[0].SpotPrice" \
+                  --output text)
+                CURRENT_TIME=$(date --utc +'%Y-%m-%dT%H:%M:%S+00:00')
+
+                # Write the information to a file
+                echo "Instance ID: $INSTANCE_ID" > /tmp/instance_info.txt
+                echo "Availability Zone: $AVAILABILITY_ZONE" >> /tmp/instance_info.txt
+                echo "Instance Launch Time: $LAUNCH_TIME" >> /tmp/instance_info.txt
+                echo "Current Time: $CURRENT_TIME" >> /tmp/instance_info.txt
+                echo "Current Spot Price: $CURRENT_SPOT_PRICE" >> /tmp/instance_info.txt
+
+                KEY="$INSTANCE_ID.txt"
+
+                echo "Checking if bucket {complete_bucket_name} exists..."
+                if aws s3api head-bucket --bucket "{complete_bucket_name}" &>/dev/null; then
+                  echo "Bucket {complete_bucket_name} exists"
+                else
+                  echo "Bucket {complete_bucket_name} does not exist. Creating..."
+                  aws s3api create-bucket --bucket "{complete_bucket_name}"
+                  echo "Bucket {complete_bucket_name} created."
+                fi
+
+                echo "Uploading the file with the name $INSTANCE_ID.txt to the S3 bucket {complete_bucket_name}..."
+                aws s3api put-object --bucket {complete_bucket_name} --key $KEY --body /tmp/instance_info.txt
+                rm -f /tmp/instance_info.txt
+                echo "Upload completed. Please check the S3 bucket for the file."
+
+                echo "Terminating instance $INSTANCE_ID"
+                aws ec2 terminate-instances --instance-ids $INSTANCE_ID
+
+                """
+    return base64.b64encode(script.encode()).decode()
+
+
+def save_spot_request_to_s3(s3_client, bucket_name, folder, request_id, region, check_count=0):
+    """
+    Save the spot request ID to the specified folder in the bucket with region information in the filename.
+    Include the check count in the object's metadata.
+    """
+    try:
+        s3_key = f"{folder}/{region}|{request_id}.txt"
+        metadata = {'check_count': str(check_count)}
+        s3_client.put_object(Bucket=bucket_name, Key=s3_key, Body=request_id, Metadata=metadata)
+        print(
+            f"Spot request {request_id} (Region: {region}) saved to {folder} in S3 bucket {bucket_name} with check count {check_count}.")
+    except Exception as e:
+        print(
+            f"Error saving spot request {request_id} (Region: {region}) to {folder} in S3 bucket {bucket_name}. Error: {e}")
+
+
+def check_spot_request_and_save_open_request_to_s3(ec2_inst_client, request_id, region):
+    """
+    Waits for the spot instance request to be fulfilled and handles various states.
+    """
+    try:
+        response = ec2_inst_client.describe_spot_instance_requests(SpotInstanceRequestIds=[request_id])
+        state = response['SpotInstanceRequests'][0]['State']
+
+        # Active State
+        if state == 'active':
+            instance_id = response['SpotInstanceRequests'][0]['InstanceId']
+            save_spot_request_to_s3(s3_client, spot_status_s3_bucket_name, 'successful', request_id, region)
+            print(f"Spot request {request_id} is active with instance ID: {instance_id}.")
+            print(f"Saved to S3 bucket {spot_status_s3_bucket_name} with successful folder .")
+            return 'active', instance_id
+
+        elif state == 'open':
+            save_spot_request_to_s3(s3_client, spot_status_s3_bucket_name, 'open', request_id, region)
+            print(f"Spot request {request_id} is open. Saved to S3.")
+            return 'open', request_id
+
+        elif state == 'failed':
+            print(f"Spot request {request_id} has failed.")
+            ec2_inst_client.cancel_spot_instance_requests(SpotInstanceRequestIds=[request_id])
+            return 'failed', None
+
+        elif state == 'cancelled':
+            print(f"Spot request {request_id} has been cancelled already. No further action required.")
+            return 'cancelled', None
+
+        elif state in ['closed', 'marked-for-termination']:
+            print(f"Spot request {request_id} is {state}. No further action required.")
+            return state, None
+
+        else:
+            print(f"Spot request {request_id} is in an unexpected state: {state}.")
+            return state, None
+
+    except Exception as e:
+        print(f"Error while handling spot request {request_id}: {e}")
+        return 'error', None
+
+
+def launch_spot_instance(aws_credentials, target_regions, table):
+    user_data_encoded = generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
+
+    response = table.scan()
+
+    items = response.get('Items', [])
+    if not items:
+        raise Exception("NoItemsAvailable: No items found in the response.")
+
+    available_items = [item for item in items if item['region'] in target_regions]
+    if not available_items:
+        raise Exception("NoItemsAvailable: No items available in the specified target regions.")
+
+    sorted_items = sorted(available_items, key=lambda x: float(x['price']))
+
+    for item in sorted_items:
+        region = item['region']
+        availability_zone = item['availability_zone']
+
+        print(f"Factor: {factor}")
+        print(f"Original spot price: {str(item['price'])}")
+        spot_price = str(factor * item['price'])
+        print(f"New spot price: {spot_price}")
+        print(f"Availability zone: {availability_zone}")
+        print(f"On demand price: {on_demand_price}")
+
+        ec2_instance_client = boto3.client('ec2', region_name=region)
+        ami_id = get_values_from_file('ami_ids.txt').get(region)
+        security_group_ids = [get_values_from_file('security_group_ids.txt').get(region)]
+
+        print(f"region: {region}")
+        print(f"Using On-Demand price: {on_demand_price}")
+
+        try:
+            response = ec2_instance_client.request_spot_instances(
+                # SpotPrice=spot_price,
+                SpotPrice=str(on_demand_price),
+                InstanceCount=number_of_spot_instances,
+                Type="one-time",
+                LaunchSpecification={
+                    "ImageId": ami_id,
+                    "InstanceType": instance_type,
+                    "KeyName": key_name,
+                    "SecurityGroupIds": security_group_ids,
+                    "Placement": {
+                        "AvailabilityZone": availability_zone
+                    },
+                    'UserData': user_data_encoded
+                }
+            )
+
+        except Exception as e:
+            # If there's an error, print or log the error and continue to the next item
+            print(f"Error occurred: {e}. Moving to the next item.")
+            continue
+
+        print("Sleep for 30 seconds...")
+        time.sleep(SLEEP_TIME_SPOT_REQUEST)
+
+        spot_request_id = response['SpotInstanceRequests'][0]['SpotInstanceRequestId']
+        print(f"Spot Request ID: {spot_request_id}")
+
+        status, result = check_spot_request_and_save_open_request_to_s3(ec2_instance_client, spot_request_id, region)
+
+        if status in ['active', 'open']:
+            print(f"Status: {status}")
+            type_of_result = 'Instance ID' if result.startswith('i') else 'Spot Request ID'
+            print(f"Processed request {spot_request_id} successfully with {type_of_result}: {result}")
+            return result
+        else:
+            print(f"Spot request {spot_request_id} not successful with status {status}. Moving to the next item.")
+
+    raise Exception(
+        "NoItemsAvailable: No items were successful after iterating through all options. -> retrying in 1 hour")
+
+
+def get_request_id_from_instance(instance_id):
+    try:
+        response = ec2_client.describe_instances(InstanceIds=[instance_id])
+        instance_details = response['Reservations'][0]['Instances'][0]
+        return instance_details['SpotInstanceRequestId']
+    except Exception as e:
+        print(f"Error fetching request ID for instance {instance_id}: {str(e)}")
+        return None
+
+
+def lambda_handler(event, context):
+    """
+    This function is triggered by a CloudWatch event when a spot instance is about to be terminated.
+    :param event:
+    :param context:
+    :return:
+    """
+
+    # Process the event here
+    print("Spot interruption event:", event)
+    if instance_id := event.get('detail', {}).get('instance-id'):
+
+        request_id = get_request_id_from_instance(instance_id)
+
+        object_key_check = f'open/{region_for_lambda_env}|{request_id}.txt'
+        exists = check_object_exists_in_s3(s3_client, spot_status_s3_bucket_name, object_key_check)
+
+        if exists:
+            print(f"Object {object_key_check} already exists in {spot_status_s3_bucket_name}")
+            print(f"Deleting {object_key_check} from {spot_status_s3_bucket_name}...")
+            s3_client.delete_object(Bucket=spot_status_s3_bucket_name, Key=object_key_check)
+
+        else:
+            print(f"Object {object_key_check} does not exist in {spot_status_s3_bucket_name}open/")
+
+        aws_credentials = get_aws_credentials_from_file()
+        add_instance_id_to_s3(instance_id, s3_client, event)
+        launch_spot_instance(aws_credentials, target_regions, table)
+    else:
+        print("Instance-id not found in the event.")
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Spot interruption handled!')
+    }

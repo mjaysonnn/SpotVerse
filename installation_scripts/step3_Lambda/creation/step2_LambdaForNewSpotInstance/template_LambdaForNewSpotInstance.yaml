@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  This CloudFormation template creates a Lambda function that is sourced
+  from an S3 object. The function is set up with a specific handler and role, 
+  and runs with a Python 3.11 runtime with a 60-second timeout.
+
+Parameters:
+  LambdaCodeBucket:
+    Description: Name of the S3 bucket containing the Lambda function code.
+    Type: String
+    Default: lambda_request_spot_replacement_with_user_data  # Default bucket name
+
+  LambdaCodeS3Key:
+    Description: S3 key (path) for the Lambda function code zip in the specified bucket.
+    Type: String
+    Default: LambdaNewSpotInstance.zip  # Default S3 key
+
+Resources:
+  MyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: lambda_new_spot_instance
+      Handler: lambda_new_spot_instance.lambda_handler
+      Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/LambdaWithAdminAccess'
+      Code:
+        S3Bucket: !Ref LambdaCodeBucket
+        S3Key: !Ref LambdaCodeS3Key
+      Runtime: python3.11
+      Timeout: 900
