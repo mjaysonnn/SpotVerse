@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  Region:
+    Description: "The region for the resources"
+    Type: "String"
+    Default: "us-east-1"
+
+Resources:
+
+  SpotReplacementLambdaInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Sub "arn:aws:lambda:${Region}:${AWS::AccountId}:function:LambdaNewSpotInstance"
+      Principal: "events.amazonaws.com"
+
+  SpotInterruptionEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Event Rule to invoke Lambda function upon Spot Instance interruption notice."
+      EventPattern:
+        source:
+          - "aws.ec2"
+        detail-type:
+          - "EC2 Spot Instance Interruption Warning"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Sub "arn:aws:lambda:${Region}:${AWS::AccountId}:function:LambdaNewSpotInstance"
+          Id: "SpotInterruptionTarget"
+
+
+#AWSTemplateFormatVersion: '2010-09-09'
+#
+#Resources:
+#
+#  SpotReplacementLambdaInvokePermission:
+#    Type: "AWS::Lambda::Permission"
+#    Properties:
+#      Action: "lambda:InvokeFunction"
+#      FunctionName: !Sub "arn:aws:lambda:us-east-1:${AWS::AccountId}:function:LambdaNewSpotInstance"
+#      Principal: "events.amazonaws.com"
+#
+#  SpotInterruptionEventRule:
+#    Type: "AWS::Events::Rule"
+#    Properties:
+#      Description: "Event Rule to invoke Lambda function upon Spot Instance interruption notice."
+#      EventPattern:
+#        source:
+#          - "aws.ec2"
+#        detail-type:
+#          - "EC2 Spot Instance Interruption Warning"
+#      State: "ENABLED"
+#      Targets:
+#        - Arn: !Sub "arn:aws:lambda:us-east-1:${AWS::AccountId}:function:LambdaNewSpotInstance"
+#          Id: "SpotInterruptionTarget"

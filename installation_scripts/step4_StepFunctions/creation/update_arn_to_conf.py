@@ -1,3 +1,5 @@
+# Update the ARN in the configuration file
+
 import configparser
 import sys
 

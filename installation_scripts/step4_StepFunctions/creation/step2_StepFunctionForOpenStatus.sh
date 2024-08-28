@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # Single Region Deployment Script for Step Function for Open Spot Instance
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
+
 
 # Function to fetch account ID
 fetch_account_id() {

@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template that sets up permissions and events to invoke a Lambda function that checks Interruption Ratio every hour.'
+
+Resources:
+  LambdaInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: "LambdaInterruptionRatio"
+      Principal: "events.amazonaws.com"
+
+  SpotInterruptionRatioCheckEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Event Rule to invoke Lambda function to check Spot Placement Score every 1 hour."
+      ScheduleExpression: "rate(60 minutes)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Sub "arn:aws:lambda:us-east-1:${AWS::AccountId}:function:LambdaInterruptionRatio"
+          Id: "SpotInterruptionRatioCheckTarget"
