@@ -2,8 +2,8 @@
 
 # Multiple regions are supported. The script will deploy the CloudFormation template to each region.
 
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
+#CONDA_BASE=$(conda info --base)
+#source "$CONDA_BASE/etc/profile.d/conda.sh"
 
 find_config_file() {
     local current_dir=$(pwd)

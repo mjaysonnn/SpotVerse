@@ -16,4 +16,14 @@ You need access for the following services:
 - CloudWatch
 - EventBridge
 
+
+```bash
+
+Update preferred regions in conf.ini
+
+preferred_regions = us-east-1, us-west-2
+```
+Run scripts. It will prompt you to hit yes or enter to continue.
+
+./run_all_in_one.sh
 ```bash

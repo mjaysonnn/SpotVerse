@@ -1,7 +1,7 @@
 #!/bin/bash
 
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
+#CONDA_BASE=$(conda info --base)
+#source "$CONDA_BASE/etc/profile.d/conda.sh"
 
 # Function to find the conf.ini file by searching up the directory tree
 find_config_file() {

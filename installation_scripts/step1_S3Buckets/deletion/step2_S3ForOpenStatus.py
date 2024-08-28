@@ -1,4 +1,5 @@
 import configparser
+from pathlib import Path
 
 import boto3
 
@@ -82,7 +83,7 @@ def get_regions_from_config(config):
     regions_str = config.get('settings', 'regions')
     return [region.strip() for region in regions_str.split(',')]
 
-from pathlib import Path
+
 def find_config_file(filename='conf.ini'):
     current_dir = Path(__file__).resolve().parent
     while current_dir != current_dir.parent:
@@ -92,13 +93,14 @@ def find_config_file(filename='conf.ini'):
             return config_file
         current_dir = current_dir.parent
     return None
+
+
 def main():
     """
     Main function.
     """
     conf_file_path = find_config_file()
     config_path = str(conf_file_path)
-
 
     config = CaseSensitiveConfigParser()
     config.read(config_path)

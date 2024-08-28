@@ -143,7 +143,7 @@ def main():
     config = configparser.ConfigParser()
     config.read(config_path)
 
-    default_region = "us-east-1"
+    default_region = "us-east-1" # it's okay to use us-east-1 as default region
     experiment_default_region = config.get('settings', 'suffix_for_s3')
 
     # Generate bucket names
