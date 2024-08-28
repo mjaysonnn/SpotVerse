@@ -19,9 +19,9 @@ You need access for the following services:
 
 ```bash
 
-Update preferred regions in conf.ini
+# Put multiple regions or single region in conf.ini
 
-preferred_regions = us-east-1, us-west-2
+regions_to_use = us-east-1, us-west-2
 ```
 Run scripts. It will prompt you to hit yes or enter to continue.
 

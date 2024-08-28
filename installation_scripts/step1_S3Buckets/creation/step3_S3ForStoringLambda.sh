@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Multiple regions are supported. The script will deploy the CloudFormation template to each region.
+# It will store the Lambda deployment zip files in an S3 bucket in each region.
 
 #CONDA_BASE=$(conda info --base)
 #source "$CONDA_BASE/etc/profile.d/conda.sh"
