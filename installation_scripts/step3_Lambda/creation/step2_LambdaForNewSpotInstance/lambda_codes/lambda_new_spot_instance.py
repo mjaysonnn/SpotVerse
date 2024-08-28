@@ -153,31 +153,35 @@ def get_values_from_file(filename):
 def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name):
     script = f"""#!/bin/bash
 
+                # Exporting AWS credentials for use in subsequent AWS CLI commands
                 export AWS_ACCESS_KEY_ID="{aws_credentials['AWS_ACCESS_KEY_ID']}"
                 export AWS_SECRET_ACCESS_KEY="{aws_credentials['AWS_SECRET_ACCESS_KEY']}"
 
-                # Initializing the log
+                # Initializing the log file to capture the output of this script
                 echo "Starting script" >/var/log/user-data.log
 
-                # Appending all standard output and error messages to the log file
+                # Redirecting all stdout and stderr to the log file for debugging purposes
                 exec > >(tee -a /var/log/user-data.log) 2>&1
 
+                # Placeholder sleep command for testing purposes
+                # You can remove or replace this line with actual script logic in production
                 echo "Sleeping for {sleep_time} seconds..."
                 sleep {sleep_time}
 
+                # Retrieve the instance ID using the ec2-metadata command
                 echo "Retrieving the instance ID using ec2-metadata..."
                 INSTANCE_ID=$(ec2-metadata -i | cut -d " " -f 2)
                 echo "Instance ID retrieved: $INSTANCE_ID"
 
-                # Get the Spot Instance Request ID
+                # Retrieve the Spot Instance Request ID associated with this instance
                 SPOT_REQUEST_ID=$(aws ec2 describe-instances --instance-id $INSTANCE_ID --query "Reservations[0].Instances[0].SpotInstanceRequestId" --output text)
                 echo "Spot Instance Request ID retrieved: $SPOT_REQUEST_ID"
-                
-                # Get the region from the Availability Zone
+
+                # Extract the region from the Availability Zone using ec2-metadata
                 REGION=$(ec2-metadata -z | cut -d " " -f 2 | sed 's/.$//')
                 echo "Region retrieved: $REGION"
-                            
-                # Check if the file exists in the spot_check_interruption bucket
+
+                # Check if the specific file exists in the S3 bucket for spot instance interruptions
                 CHECK_KEY="open/${{REGION}}|${{SPOT_REQUEST_ID}}.txt"
                 echo "Checking if file $CHECK_KEY exists in bucket {spot_status_s3_bucket_name}..."
                 if aws s3api head-object --bucket "{spot_status_s3_bucket_name}" --key "$CHECK_KEY" 2>/dev/null; then
@@ -187,13 +191,14 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                     echo "File $CHECK_KEY does not exist in bucket {spot_status_s3_bucket_name}. Skipping..."
                 fi
 
-                # Retrieve instance details and spot price information
+                # Retrieve instance details such as instance type, availability zone, and launch time
                 INSTANCE_TYPE=$(ec2-metadata -t | cut -d " " -f 2)
                 AVAILABILITY_ZONE=$(ec2-metadata -z | cut -d " " -f 2)
                 LAUNCH_TIME=$(aws ec2 describe-instances \
                   --instance-id $INSTANCE_ID \
                   --query "Reservations[0].Instances[0].LaunchTime" \
                   --output text)
+                # Fetch the current spot price for the instance type in the specific availability zone
                 CURRENT_SPOT_PRICE=$(aws ec2 describe-spot-price-history \
                   --instance-types $INSTANCE_TYPE \
                   --availability-zone $AVAILABILITY_ZONE \
@@ -203,15 +208,17 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                   --output text)
                 CURRENT_TIME=$(date --utc +'%Y-%m-%dT%H:%M:%S+00:00')
 
-                # Write the information to a file
+                # Write all the retrieved information to a temporary file
                 echo "Instance ID: $INSTANCE_ID" > /tmp/instance_info.txt
                 echo "Availability Zone: $AVAILABILITY_ZONE" >> /tmp/instance_info.txt
                 echo "Instance Launch Time: $LAUNCH_TIME" >> /tmp/instance_info.txt
                 echo "Current Time: $CURRENT_TIME" >> /tmp/instance_info.txt
                 echo "Current Spot Price: $CURRENT_SPOT_PRICE" >> /tmp/instance_info.txt
 
+                # Define the S3 object key as the instance ID followed by .txt
                 KEY="$INSTANCE_ID.txt"
 
+                # Check if the S3 bucket for completed instance information exists, create it if not
                 echo "Checking if bucket {complete_bucket_name} exists..."
                 if aws s3api head-bucket --bucket "{complete_bucket_name}" &>/dev/null; then
                   echo "Bucket {complete_bucket_name} exists"
@@ -221,15 +228,19 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                   echo "Bucket {complete_bucket_name} created."
                 fi
 
+                # Upload the instance information file to the S3 bucket
                 echo "Uploading the file with the name $INSTANCE_ID.txt to the S3 bucket {complete_bucket_name}..."
                 aws s3api put-object --bucket {complete_bucket_name} --key $KEY --body /tmp/instance_info.txt
+                # Remove the temporary file after uploading
                 rm -f /tmp/instance_info.txt
                 echo "Upload completed. Please check the S3 bucket for the file."
 
+                # Terminate the instance after completing all tasks
                 echo "Terminating instance $INSTANCE_ID"
                 aws ec2 terminate-instances --instance-ids $INSTANCE_ID
 
                 """
+    # Return the generated script, base64 encoded for use in the EC2 user data
     return base64.b64encode(script.encode()).decode()
 
 
@@ -314,7 +325,7 @@ def launch_spot_instance(aws_credentials, target_regions, table):
         print(f"Factor: {factor}")
         print(f"Original spot price: {str(item['price'])}")
         spot_price = str(factor * item['price'])
-        print(f"New spot price: {spot_price}")
+        print(f"New spot price: {spot_price}")  # It's not important since we are using on-demand price
         print(f"Availability zone: {availability_zone}")
         print(f"On demand price: {on_demand_price}")
 

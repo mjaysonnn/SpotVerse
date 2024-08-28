@@ -1,5 +1,6 @@
 """
 Single Region Copy AWS Credentials to Lambda Folders
+Be careful with the credentials file as it contains sensitive information.
 """
 import configparser
 import os

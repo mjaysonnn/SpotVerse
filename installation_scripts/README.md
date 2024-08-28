@@ -22,6 +22,10 @@ You need access for the following services:
 # Put multiple regions or single region in conf.ini
 
 regions_to_use = us-east-1, us-west-2
+
+#Recommend to use a default region as us-east-1 since S3 bucket's default region is us-east-1
+
+
 ```
 Run scripts. It will prompt you to hit yes or enter to continue.
 
