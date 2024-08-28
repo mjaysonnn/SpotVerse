@@ -307,32 +307,67 @@ def check_spot_request_and_save_open_request_to_s3(ec2_inst_client, request_id, 
         return 'error', None
 
 
+import random
+import boto3
+
 def launch_spot_instance(aws_credentials, target_regions, table):
+    print("Starting the launch_spot_instance function...")
+
     user_data_encoded = generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
+    print(f"Generated user data script: {user_data_encoded[:50]}...")  # Display the first 50 characters for brevity
+
+    print("Scanning the DynamoDB table for available items...")
+    response = table.scan()
+
+    items = response.get('Items', [])
+    print(f"Scanned items: {items}")
+    if not items:
+        print("No items found in the table.")
+        raise Exception("NoItemsAvailable: No items found in the response.")
+
+    available_items = [item for item in items if item['region'] in target_regions]
+    print(f"Filtered available items based on target regions: {available_items}")
 
     # Evaluate regions based on SPS and Interruption Free Scores
+    print("Evaluating regions based on SPS and Interruption Free Scores...")
     suitable_regions = evaluate_regions_for_spot_instances(target_regions)
+    print(f"Suitable regions: {suitable_regions}")
     if not suitable_regions:
+        print("No suitable regions found after evaluation.")
         raise Exception("No suitable regions based on SPS and Interruption Free scores.")
 
+    # Filter available items to only include those in suitable regions
+    available_items = [item for item in available_items if item['region'] in suitable_regions]
+    print(f"Available items after filtering by suitable regions: {available_items}")
+    if not available_items:
+        print("No items available in the suitable regions.")
+        raise Exception("NoItemsAvailable: No items available in the suitable regions.")
+
+    # Sort available items by price
+    sorted_items = sorted(available_items, key=lambda x: float(x['price']))
+    print(f"Sorted available items by price: {sorted_items}")
+
     # Randomly select one of the suitable regions
-    selected_region_item = random.choice(suitable_regions)
+    selected_region_item = random.choice(sorted_items)
     region = selected_region_item['region']
     availability_zone = selected_region_item['availability_zone']
 
-    print(f"Selected Region: {region}")
-    print(f"Selected Availability Zone: {availability_zone}")
+    print(f"Randomly selected region: {region}")
+    print(f"Selected availability zone: {availability_zone}")
 
+    print(f"Using On-Demand price: {on_demand_price}")
     ec2_instance_client = boto3.client('ec2', region_name=region)
+
     ami_id = get_values_from_file('ami_ids.txt').get(region)
     security_group_ids = [get_values_from_file('security_group_ids.txt').get(region)]
 
-    print(f"region: {region}")
-    print(f"Using On-Demand price: {on_demand_price}")
+    print(f"AMI ID: {ami_id}")
+    print(f"Security Group IDs: {security_group_ids}")
 
     try:
+        print("Requesting spot instances...")
         response = ec2_instance_client.request_spot_instances(
-            SpotPrice=str(on_demand_price),  # Using On-Demand price
+            SpotPrice=str(on_demand_price),
             InstanceCount=number_of_spot_instances,
             Type="one-time",
             LaunchSpecification={
@@ -346,26 +381,29 @@ def launch_spot_instance(aws_credentials, target_regions, table):
                 'UserData': user_data_encoded
             }
         )
+        print(f"Spot instance request response: {response}")
 
     except Exception as e:
-        print(f"Error occurred: {e}. Could not request instance in the selected region.")
+        print(f"Error occurred during spot instance request: {e}")
         raise e
 
-    print("Sleep for 30 seconds...")
+    print("Sleeping for 30 seconds to allow the spot request to process...")
     time.sleep(SLEEP_TIME_SPOT_REQUEST)
 
     spot_request_id = response['SpotInstanceRequests'][0]['SpotInstanceRequestId']
     print(f"Spot Request ID: {spot_request_id}")
 
     status, result = check_spot_request_and_save_open_request_to_s3(ec2_instance_client, spot_request_id, region)
+    print(f"Spot request status: {status}")
+    print(f"Result: {result}")
 
     if status in ['active', 'open']:
-        print(f"Status: {status}")
+        print(f"Spot request was successful with status {status}.")
         type_of_result = 'Instance ID' if result.startswith('i') else 'Spot Request ID'
         print(f"Processed request {spot_request_id} successfully with {type_of_result}: {result}")
         return result
     else:
-        print(f"Spot request {spot_request_id} not successful with status {status}.")
+        print(f"Spot request {spot_request_id} was not successful with status {status}.")
         raise Exception("Spot request was not successful.")
 
 
