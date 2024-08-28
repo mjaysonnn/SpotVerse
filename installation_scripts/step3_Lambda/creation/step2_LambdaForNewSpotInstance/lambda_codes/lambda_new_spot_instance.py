@@ -2,6 +2,7 @@ import base64
 import configparser
 import json
 import os
+import random
 import re
 import time
 from datetime import datetime
@@ -9,6 +10,7 @@ from datetime import timezone
 from decimal import Decimal
 
 import boto3
+from boto3.dynamodb.conditions import Attr
 
 # Initialize the parser and read the ini file
 config = configparser.ConfigParser()
@@ -27,6 +29,8 @@ key_name = config.get('settings', 'key_name')
 spot_status_s3_bucket_name = config.get('settings', 'spot_tracking_s3_bucket_name')
 Region_DynamodbForSpotPrice = config.get('settings', 'Region_DynamodbForSpotPrice')
 on_demand_price = float(config.get('settings', 'on_demand_price'))
+Region_DynamoDBForSpotPlacementScore = config.get('settings', 'Region_DynamoForSpotPlacementScore')
+Region_DynamoDBForStabilityScore = config.get('settings', 'Region_DynamoForSpotInterruptionRatio')
 
 print(f"Configured target regions: {target_regions}")
 print(f"target_regions: {target_regions}")
@@ -306,77 +310,63 @@ def check_spot_request_and_save_open_request_to_s3(ec2_inst_client, request_id, 
 def launch_spot_instance(aws_credentials, target_regions, table):
     user_data_encoded = generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
 
-    response = table.scan()
+    # Evaluate regions based on SPS and Interruption Free Scores
+    suitable_regions = evaluate_regions_for_spot_instances(target_regions)
+    if not suitable_regions:
+        raise Exception("No suitable regions based on SPS and Interruption Free scores.")
 
-    items = response.get('Items', [])
-    if not items:
-        raise Exception("NoItemsAvailable: No items found in the response.")
+    # Randomly select one of the suitable regions
+    selected_region_item = random.choice(suitable_regions)
+    region = selected_region_item['region']
+    availability_zone = selected_region_item['availability_zone']
 
-    available_items = [item for item in items if item['region'] in target_regions]
-    if not available_items:
-        raise Exception("NoItemsAvailable: No items available in the specified target regions.")
+    print(f"Selected Region: {region}")
+    print(f"Selected Availability Zone: {availability_zone}")
 
-    sorted_items = sorted(available_items, key=lambda x: float(x['price']))
+    ec2_instance_client = boto3.client('ec2', region_name=region)
+    ami_id = get_values_from_file('ami_ids.txt').get(region)
+    security_group_ids = [get_values_from_file('security_group_ids.txt').get(region)]
 
-    for item in sorted_items:
-        region = item['region']
-        availability_zone = item['availability_zone']
+    print(f"region: {region}")
+    print(f"Using On-Demand price: {on_demand_price}")
 
-        print(f"Factor: {factor}")
-        print(f"Original spot price: {str(item['price'])}")
-        spot_price = str(factor * item['price'])
-        print(f"New spot price: {spot_price}")  # It's not important since we are using on-demand price
-        print(f"Availability zone: {availability_zone}")
-        print(f"On demand price: {on_demand_price}")
+    try:
+        response = ec2_instance_client.request_spot_instances(
+            SpotPrice=str(on_demand_price),  # Using On-Demand price
+            InstanceCount=number_of_spot_instances,
+            Type="one-time",
+            LaunchSpecification={
+                "ImageId": ami_id,
+                "InstanceType": instance_type,
+                "KeyName": key_name,
+                "SecurityGroupIds": security_group_ids,
+                "Placement": {
+                    "AvailabilityZone": availability_zone
+                },
+                'UserData': user_data_encoded
+            }
+        )
 
-        ec2_instance_client = boto3.client('ec2', region_name=region)
-        ami_id = get_values_from_file('ami_ids.txt').get(region)
-        security_group_ids = [get_values_from_file('security_group_ids.txt').get(region)]
+    except Exception as e:
+        print(f"Error occurred: {e}. Could not request instance in the selected region.")
+        raise e
 
-        print(f"region: {region}")
-        print(f"Using On-Demand price: {on_demand_price}")
+    print("Sleep for 30 seconds...")
+    time.sleep(SLEEP_TIME_SPOT_REQUEST)
 
-        try:
-            response = ec2_instance_client.request_spot_instances(
-                # SpotPrice=spot_price,
-                SpotPrice=str(on_demand_price),
-                InstanceCount=number_of_spot_instances,
-                Type="one-time",
-                LaunchSpecification={
-                    "ImageId": ami_id,
-                    "InstanceType": instance_type,
-                    "KeyName": key_name,
-                    "SecurityGroupIds": security_group_ids,
-                    "Placement": {
-                        "AvailabilityZone": availability_zone
-                    },
-                    'UserData': user_data_encoded
-                }
-            )
+    spot_request_id = response['SpotInstanceRequests'][0]['SpotInstanceRequestId']
+    print(f"Spot Request ID: {spot_request_id}")
 
-        except Exception as e:
-            # If there's an error, print or log the error and continue to the next item
-            print(f"Error occurred: {e}. Moving to the next item.")
-            continue
+    status, result = check_spot_request_and_save_open_request_to_s3(ec2_instance_client, spot_request_id, region)
 
-        print("Sleep for 30 seconds...")
-        time.sleep(SLEEP_TIME_SPOT_REQUEST)
-
-        spot_request_id = response['SpotInstanceRequests'][0]['SpotInstanceRequestId']
-        print(f"Spot Request ID: {spot_request_id}")
-
-        status, result = check_spot_request_and_save_open_request_to_s3(ec2_instance_client, spot_request_id, region)
-
-        if status in ['active', 'open']:
-            print(f"Status: {status}")
-            type_of_result = 'Instance ID' if result.startswith('i') else 'Spot Request ID'
-            print(f"Processed request {spot_request_id} successfully with {type_of_result}: {result}")
-            return result
-        else:
-            print(f"Spot request {spot_request_id} not successful with status {status}. Moving to the next item.")
-
-    raise Exception(
-        "NoItemsAvailable: No items were successful after iterating through all options. -> retrying in 1 hour")
+    if status in ['active', 'open']:
+        print(f"Status: {status}")
+        type_of_result = 'Instance ID' if result.startswith('i') else 'Spot Request ID'
+        print(f"Processed request {spot_request_id} successfully with {type_of_result}: {result}")
+        return result
+    else:
+        print(f"Spot request {spot_request_id} not successful with status {status}.")
+        raise Exception("Spot request was not successful.")
 
 
 def get_request_id_from_instance(instance_id):
@@ -387,6 +377,101 @@ def get_request_id_from_instance(instance_id):
     except Exception as e:
         print(f"Error fetching request ID for instance {instance_id}: {str(e)}")
         return None
+
+
+def fetch_highest_sps_score(region: str) -> int:
+    """
+    Fetch the highest SPS score for a given region from the SpotPlacementScoreTable.
+
+    :param region: The region to fetch the score.
+    :return: The highest SPS score as an integer.
+    """
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=Region_DynamoDBForSpotPlacementScore)  # Replace with the correct region
+    table = dynamodb.Table('SpotPlacementScoreTable')
+
+    print(f"Fetching the highest SPS score for region {region} from SpotPlacementScoreTable...")
+
+    try:
+        # Scan the table for the specific region
+        response = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('Region').eq(region)
+        )
+        items = response.get('Items', [])
+        if items:
+            # If there are multiple items, find the highest score
+            highest_score = max(int(item['SPS']) for item in items)
+            # print(f"Found items: {items}")
+            print(f"Highest SPS Score: {highest_score}")
+            return highest_score
+        else:
+            print(f"No matching items found for region: {region} in SpotPlacementScoreTable.")
+            return 0
+
+    except Exception as e:
+        print(f"Error fetching SPS score for region {region}: {e}")
+        return 0
+
+
+def fetch_interruption_free_score(region: str) -> int:
+    """
+    Fetch the Interruption_free_score for a given region from the SpotInterruptionRatioTable.
+
+    :param region: The region to fetch the score.
+    :return: The Interruption_free_score as an integer.
+    """
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=Region_DynamoDBForStabilityScore)  # Replace with the correct region
+    table = dynamodb.Table('SpotInterruptionRatioTable')
+
+    print(f"Fetching Interruption_free_score for region {region} from SpotInterruptionRatioTable...")
+
+    try:
+        # Scan the table for the specific region
+        response = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('Region').eq(region)
+        )
+        items = response.get('Items', [])
+        if items:
+            # Since we assume Region is unique, take the score directly
+            score = int(items[0]['Interruption_free_score'])
+            # print(f"Found item: {items[0]}")
+            print(f"Interruption Free Score: {score}")
+            return score
+        else:
+            print(f"No matching items found for region: {region} in SpotInterruptionRatioTable.")
+            return 0
+
+    except Exception as e:
+        print(f"Error fetching Interruption_free_score for region {region}: {e}")
+        return 0
+
+
+def evaluate_regions_for_spot_instances(preferred_region_list):
+    """
+    Evaluate each preferred region to decide if it's better to use spot instances or on-demand instances.
+
+    :param preferred_region_list: A list of preferred regions to evaluate.
+    :return: A list of regions that are good for spot instances (Total Score >= 4).
+    """
+    suitable_regions = []
+
+    for region in preferred_region_list:
+        spot_placement_score = fetch_highest_sps_score(region)
+        stability_score = fetch_interruption_free_score(region)
+        total_score = spot_placement_score + stability_score
+
+        if total_score >= 4:
+            print(f"Region {region} is good for spot instances (Total Score: {total_score}).")
+            suitable_regions.append(region)
+        else:
+            print(f"Region {region} is excluded due to low total score (Total Score: {total_score}).")
+
+    if not suitable_regions:
+        print("None of the regions are suitable for spot instances.")
+        print("It is recommended to try using on-demand instances.")
+
+    return suitable_regions
 
 
 def lambda_handler(event, context):
