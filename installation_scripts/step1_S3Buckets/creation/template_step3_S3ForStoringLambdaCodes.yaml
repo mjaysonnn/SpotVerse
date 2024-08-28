@@ -1,0 +1,24 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  This CloudFormation template creates an S3 bucket with a dynamically generated name 
+  based on the provided bucket prefix and the region where the stack is deployed. The bucket has 
+  versioning enabled and is configured with a deletion policy to delete the bucket and 
+  its contents upon stack deletion.
+
+Parameters:
+  BucketPrefix:
+    Description: The prefix for the S3 bucket name.
+    Type: String
+    Default: "mj-aws-lambda-code"
+    AllowedPattern: "[a-zA-Z0-9-]*"
+    ConstraintDescription: Bucket prefix can include numbers, lowercase letters, and hyphens.
+
+Resources:
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Sub '${BucketPrefix}-${AWS::Region}'
+      VersioningConfiguration:
+        Status: Enabled
+
