@@ -8,7 +8,6 @@ import time
 from decimal import Decimal
 from typing import List
 
-import boto3
 import botocore
 from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
@@ -578,28 +577,31 @@ def cancel_spot_requests():
             cancel_spot_requests_and_terminate_instances(region)
 
 
-def fetch_spot_price_data() -> dict:
+def fetch_spot_price_data(suitable_regions: List[str] = None) -> dict:
     """
     Fetch spot price data from DynamoDB.
-    If there is preferred regions, fetch data for those regions.
-    Otherwise, fetch data for the region that are specified in region_to_launch_spot_instance
-    Returns: List of responses for the specified regions
+    If there are suitable regions, fetch data for those regions.
+    Otherwise, fetch data for the region specified in region_to_launch_spot_instance.
+
+    :param suitable_regions: List of regions that are considered suitable for spot instances.
+    :return: Dictionary of responses for the specified regions.
     """
     response_dict = {}
-    # Fetch spot price data from DynamoDB
-    auto_color_print("Fetching DynamoDB")
+    print("Fetching DynamoDB Spot Price Data...")
+
     dynamodb = boto3.resource('dynamodb', region_name=Region_DynamodbForSpotPrice)
     table = dynamodb.Table('SpotPriceCostTable')
 
     # Determine the regions to query for spot price data
-    regions_to_query = preferred_regions if preferred_regions else [region_to_launch_spot_instance]
+    if suitable_regions:
+        regions_to_query = suitable_regions
+    else:
+        regions_to_query = [region_to_launch_spot_instance]
 
-    # Fetch data for the specified regions (preferred or specified region)
-    responses = []
+    # Fetch data for the specified regions (suitable or fallback region)
     for region in regions_to_query:
         print(f"Fetching data for region/availability zone: {region}")
         response = table.scan(FilterExpression=Attr('availability_zone').begins_with(region))
-        # responses.append(response)
         response_dict[region] = response
 
     return response_dict
@@ -643,11 +645,13 @@ def launch_all_spot_instances(response_dict):
     Launch spot instances for the specified regions.
     """
     total_regions = len(response_dict)
+    print(f"Total regions: {total_regions}")
     instances_per_region, remainder = divmod(number_of_instances_to_launch, total_regions)
+    print(f"Instances per region: {instances_per_region}, Remainder: {remainder}")
     regions_received_extra_instance = set()
     key_name = 'mjay_m1'
-    for region, response in response_dict.items():
 
+    for region, response in response_dict.items():
         ec2_client = boto3.client('ec2', region_name=region)
         ami_id, security_group_ids = fetch_ami_and_security_group_ids(region)
 
@@ -656,12 +660,17 @@ def launch_all_spot_instances(response_dict):
         open_request_ids_global = []
 
         if 'Items' not in response or not response['Items']:
-            print("No items found in the table.")
-            sys.exit()
+            print(f"No items found in the table for region: {region}.")
+            continue
 
         sorted_items = sorted(response['Items'], key=lambda x: float(x['price']))
-        instances_to_request, remainder = calculate_instances_to_request(region, instances_per_region, remainder,
-                                                                         regions_received_extra_instance)
+        instances_to_request = instances_per_region
+
+        # Handle the remainder
+        if remainder > 0 and region not in regions_received_extra_instance:
+            instances_to_request += 1
+            remainder -= 1
+            regions_received_extra_instance.add(region)
 
         while instances_to_request > 0:  # Loop until all instances are launched
             for item in sorted_items:
@@ -678,12 +687,12 @@ def launch_all_spot_instances(response_dict):
                             "Instance type": instance_type, "Key name": key_name,
                             "Spot price": spot_price, "Number of instances to launch": instances_to_request})
 
-                n_active, n_open, n_failed, open_request_ids = launch_spot_instance(ec2_client, spot_price,
-                                                                                    ami_id,
-                                                                                    instance_type, key_name,
-                                                                                    security_group_ids,
-                                                                                    availability_zone,
-                                                                                    instances_to_request)
+                # Spot Price is not actually used but on-demand price is used
+                n_active, n_open, n_failed, open_request_ids = launch_spot_instance(
+                    ec2_client, spot_price, ami_id, instance_type, key_name,
+                    security_group_ids, availability_zone, instances_to_request
+                )
+
                 open_request_ids_global.extend(open_request_ids)
                 active_request_count += n_active
                 open_request_count += n_open
@@ -692,80 +701,117 @@ def launch_all_spot_instances(response_dict):
                 print(f"Number of Active requests: {n_active}, Number of Open requests: {n_open}")
                 print(f"Number of Failed requests: {n_failed}")
                 print(f"Open request IDs: {open_request_ids}")
-                print(f"Successful requests: {active_request_count},  Open requests: {open_request_count}")
-
-                if instances_to_request != n_failed:
-                    print(f"Warning: The number of instances to launch ({instances_to_request}) "
-                          f"does not match the failed count ({n_failed}).")
+                print(f"Successful requests: {active_request_count}, Open requests: {open_request_count}")
 
                 if instances_to_request == 0:  # Break the loop if all instances are launched
                     print("All spot requests have been successfully fulfilled (active or open).")
                     break
 
-            else:
-                print(f"Still {instances_to_request} more requests are needed. Retrying in other azs...")
+            if instances_to_request > 0:
+                print(f"Still {instances_to_request} more requests are needed. Retrying in other AZs...")
 
+        if instances_to_request > 0:
+            print(f"Could not fulfill all requests for region: {region}.")
+
+    print("Completed launching spot instances across all regions.")
+
+
+def fetch_highest_sps_score(region: str) -> int:
+    """
+    Fetch the highest SPS score for a given region from the SpotPlacementScoreTable.
+
+    :param region: The region to fetch the score.
+    :return: The highest SPS score as an integer.
+    """
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=Region_DynamoDBForSpotPlacementScore)  # Replace with the correct region
+    table = dynamodb.Table('SpotPlacementScoreTable')
+
+    print(f"Fetching the highest SPS score for region {region} from SpotPlacementScoreTable...")
+
+    try:
+        # Scan the table for the specific region
+        response = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('Region').eq(region)
+        )
+        items = response.get('Items', [])
+        if items:
+            # If there are multiple items, find the highest score
+            highest_score = max(int(item['SPS']) for item in items)
+            # print(f"Found items: {items}")
+            print(f"Highest SPS Score: {highest_score}")
+            return highest_score
         else:
-            print("No items found in the table.")
-            sys.exit()
-    else:
-        print("No items found in the table.")
-        sys.exit()
-
-
-def fetch_score_from_dynamodb(table_name: str, region: str) -> int:
-    """
-    Fetch a numerical score for a given region from a specified DynamoDB table.
-
-    :param table_name: The name of the DynamoDB table.
-    :param region: The region for which to fetch the score.
-    :return: The score as an integer.
-    """
-    dynamodb = None
-    table = None
-    if table_name == "spot_placement_score":
-        dynamodb = boto3.resource('dynamodb', region_name=Region_DynamoDBForSpotPlacementScore)
-        table = dynamodb.Table(table_name)
-
-    elif table_name == "stability_score":
-        dynamodb = boto3.resource('dynamodb', region_name=Region_DynamoDBForStabilityScore)
-        table = dynamodb.Table(table_name)
-
-    if table is not None:  # Ensure table has been assigned
-        try:
-            response = table.get_item(Key={'region': region})
-            if 'Item' in response:
-                return int(response['Item']['score'])
-            else:
-                print(f"No score found for region {region} in table {table_name}.")
-                return 0
-        except Exception as e:
-            print(f"Error fetching score from {table_name} for region {region}: {e}")
+            print(f"No matching items found for region: {region} in SpotPlacementScoreTable.")
             return 0
-    else:
-        print(f"Table name '{table_name}' is not recognized.")
+
+    except Exception as e:
+        print(f"Error fetching SPS score for region {region}: {e}")
         return 0
 
 
-def evaluate_regions_for_spot_instances(preferred_region_list: List[str]):
+import boto3
+
+
+def fetch_interruption_free_score(region: str) -> int:
+    """
+    Fetch the Interruption_free_score for a given region from the SpotInterruptionRatioTable.
+
+    :param region: The region to fetch the score.
+    :return: The Interruption_free_score as an integer.
+    """
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=Region_DynamoDBForStabilityScore)  # Replace with the correct region
+    table = dynamodb.Table('SpotInterruptionRatioTable')
+
+    print(f"Fetching Interruption_free_score for region {region} from SpotInterruptionRatioTable...")
+
+    try:
+        # Scan the table for the specific region
+        response = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('Region').eq(region)
+        )
+        items = response.get('Items', [])
+        if items:
+            # Since we assume Region is unique, take the score directly
+            score = int(items[0]['Interruption_free_score'])
+            # print(f"Found item: {items[0]}")
+            print(f"Interruption Free Score: {score}")
+            return score
+        else:
+            print(f"No matching items found for region: {region} in SpotInterruptionRatioTable.")
+            return 0
+
+    except Exception as e:
+        print(f"Error fetching Interruption_free_score for region {region}: {e}")
+        return 0
+
+
+def evaluate_regions_for_spot_instances(preferred_region_list: List[str]) -> List[str]:
     """
     Evaluate each preferred region to decide if it's better to use spot instances or on-demand instances.
 
     :param preferred_region_list: A list of preferred regions to evaluate.
+    :return: A list of regions that are good for spot instances (Total Score >= 4).
     """
+    suitable_regions = []
+
     for region in preferred_region_list:
-        spot_placement_score = fetch_score_from_dynamodb('spot_placement_score', region)
-        stability_score = fetch_score_from_dynamodb('stability_score', region)
+        spot_placement_score = fetch_highest_sps_score(region)
+        stability_score = fetch_interruption_free_score(region)
         total_score = spot_placement_score + stability_score
 
         if total_score >= 4:
             print(f"Region {region} is good for spot instances (Total Score: {total_score}).")
+            suitable_regions.append(region)
         else:
-            print(f"Region {region} is better to run using on-demand instances (Total Score: {total_score}).")
-            # prompt if you want to run on-demand instances then exit the code
-            if get_user_input(f"Do you want to run on-demand instances in region {region}? Type 'no' to exit: "):
-                print("Exiting as requested...")
-                exit()
+            print(f"Region {region} is excluded due to low total score (Total Score: {total_score}).")
+
+    if not suitable_regions:
+        print("None of the regions are suitable for spot instances.")
+        print("It is recommended to try using on-demand instances.")
+
+    return suitable_regions
 
 
 # ============================================================ Main ===================================================
@@ -786,7 +832,7 @@ instance_type = config.get('settings', 'instance_type')
 spot_tracking_s3_bucket_name = config.get('settings', 'spot_tracking_s3_bucket_name')
 Region_DynamodbForSpotPrice = config.get('settings', 'Region_DynamodbForSpotPrice')
 on_demand_price = float(config.get('settings', 'on_demand_price'))
-preferred_regions = [region.strip() for region in config.get('settings', 'preferred_regions').split(',')]
+# preferred_regions = [region.strip() for region in config.get('settings', 'preferred_regions').split(',')]
 Region_DynamoDBForSpotPlacementScore = config.get('settings', 'Region_DynamoForSpotPlacementScore')
 Region_DynamoDBForStabilityScore = config.get('settings', 'Region_DynamoForSpotInterruptionRatio')
 print(f"Complete bucket name: {complete_bucket_name}")
@@ -802,7 +848,7 @@ print(f"Spot Price DynamoDB Region: {Region_DynamodbForSpotPrice}")
 print(f"Spot Placement Score DynamoDB Region: {Region_DynamoDBForSpotPlacementScore}")
 print(f"Stability Score DynamoDB Region: {Region_DynamoDBForStabilityScore}")
 print(f"On-demand price: {on_demand_price}")
-print(f"Preferred regions: {preferred_regions}")
+# print(f"Preferred regions: {preferred_regions}")
 
 confirmation = input("Are the variables correct? Type 'no' to exit, or anything else to continue: ")
 if confirmation.lower() == 'no':
@@ -810,7 +856,6 @@ if confirmation.lower() == 'no':
     exit()
 else:
     print("Continuing with the process...")
-
 
 # Initialize the S3 client, colored print, and other variables
 s3 = boto3.resource('s3')
@@ -830,9 +875,10 @@ def main():
     cancel_spot_requests()
     empty_buckets()
     update_spot_price_table()
-    evaluate_regions_for_spot_instances(preferred_regions)
+    suitable_regions = evaluate_regions_for_spot_instances(regions)
+    print(f"Good regions for spot instances: {suitable_regions}")
+    response_dict: dict = fetch_spot_price_data(suitable_regions)
 
-    response_dict: dict = fetch_spot_price_data()
     launch_all_spot_instances(response_dict)
 
 
