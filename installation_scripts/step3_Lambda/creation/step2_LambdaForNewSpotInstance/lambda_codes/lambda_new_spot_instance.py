@@ -310,6 +310,9 @@ def check_spot_request_and_save_open_request_to_s3(ec2_inst_client, request_id, 
 import random
 import boto3
 
+import random
+import boto3
+
 def launch_spot_instance(aws_credentials, target_regions, table):
     print("Starting the launch_spot_instance function...")
 
@@ -343,16 +346,24 @@ def launch_spot_instance(aws_credentials, target_regions, table):
         print("No items available in the suitable regions.")
         raise Exception("NoItemsAvailable: No items available in the suitable regions.")
 
-    # Sort available items by price
-    sorted_items = sorted(available_items, key=lambda x: float(x['price']))
-    print(f"Sorted available items by price: {sorted_items}")
-
     # Randomly select one of the suitable regions
-    selected_region_item = random.choice(sorted_items)
+    selected_region = random.choice(suitable_regions)
+    print(f"Randomly selected region: {selected_region}")
+
+    # Filter available items to only include those in the selected region
+    region_specific_items = [item for item in available_items if item['region'] == selected_region]
+    print(f"Items in the selected region: {region_specific_items}")
+
+    # Sort the items within the selected region by price
+    sorted_items = sorted(region_specific_items, key=lambda x: float(x['price']))
+    print(f"Sorted items by price in the selected region: {sorted_items}")
+
+    # Select the best-priced item within the selected region
+    selected_region_item = sorted_items[0]  # Since it's sorted, the first item will have the lowest price
     region = selected_region_item['region']
     availability_zone = selected_region_item['availability_zone']
 
-    print(f"Randomly selected region: {region}")
+    print(f"Selected region: {region}")
     print(f"Selected availability zone: {availability_zone}")
 
     print(f"Using On-Demand price: {on_demand_price}")
@@ -405,6 +416,7 @@ def launch_spot_instance(aws_credentials, target_regions, table):
     else:
         print(f"Spot request {spot_request_id} was not successful with status {status}.")
         raise Exception("Spot request was not successful.")
+
 
 
 def get_request_id_from_instance(instance_id):

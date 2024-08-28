@@ -5,6 +5,7 @@ import time
 from decimal import Decimal
 
 import boto3
+from boto3.dynamodb.conditions import Attr
 
 # Initialize the parser and read the ini file
 config = configparser.ConfigParser()
@@ -22,6 +23,8 @@ key_name = config.get('settings', 'key_name')
 spot_tracking_s3_bucket_name = config.get('settings', 'spot_tracking_s3_bucket_name')
 Region_DynamodbForSpotPrice = config.get('settings', 'Region_DynamodbForSpotPrice')
 on_demand_price = float(config.get('settings', 'on_demand_price'))
+Region_DynamoDBForSpotPlacementScore = config.get('settings', 'Region_DynamoForSpotPlacementScore')
+Region_DynamoDBForStabilityScore = config.get('settings', 'Region_DynamoForSpotInterruptionRatio')
 
 print(f"Target_regions: {target_regions}")
 print(f"Factor from conf.ini: {factor}")
@@ -255,18 +258,134 @@ def move_to_folder(request_id, region, source_folder, destination_folder):
     s3_client.delete_object(Bucket=spot_tracking_s3_bucket_name, Key=source_key)
 
 
+def fetch_highest_sps_score(region: str) -> int:
+    """
+    Fetch the highest SPS score for a given region from the SpotPlacementScoreTable.
+
+    :param region: The region to fetch the score.
+    :return: The highest SPS score as an integer.
+    """
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=Region_DynamoDBForSpotPlacementScore)  # Replace with the correct region
+    table = dynamodb.Table('SpotPlacementScoreTable')
+
+    print(f"Fetching the highest SPS score for region {region} from SpotPlacementScoreTable...")
+
+    try:
+        # Scan the table for the specific region
+        response = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('Region').eq(region)
+        )
+        items = response.get('Items', [])
+        if items:
+            # If there are multiple items, find the highest score
+            highest_score = max(int(item['SPS']) for item in items)
+            # print(f"Found items: {items}")
+            print(f"Highest SPS Score: {highest_score}")
+            return highest_score
+        else:
+            print(f"No matching items found for region: {region} in SpotPlacementScoreTable.")
+            return 0
+
+    except Exception as e:
+        print(f"Error fetching SPS score for region {region}: {e}")
+        return 0
+
+
+def fetch_interruption_free_score(region: str) -> int:
+    """
+    Fetch the Interruption_free_score for a given region from the SpotInterruptionRatioTable.
+
+    :param region: The region to fetch the score.
+    :return: The Interruption_free_score as an integer.
+    """
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=Region_DynamoDBForStabilityScore)  # Replace with the correct region
+    table = dynamodb.Table('SpotInterruptionRatioTable')
+
+    print(f"Fetching Interruption_free_score for region {region} from SpotInterruptionRatioTable...")
+
+    try:
+        # Scan the table for the specific region
+        response = table.scan(
+            FilterExpression=boto3.dynamodb.conditions.Attr('Region').eq(region)
+        )
+        items = response.get('Items', [])
+        if items:
+            # Since we assume Region is unique, take the score directly
+            score = int(items[0]['Interruption_free_score'])
+            # print(f"Found item: {items[0]}")
+            print(f"Interruption Free Score: {score}")
+            return score
+        else:
+            print(f"No matching items found for region: {region} in SpotInterruptionRatioTable.")
+            return 0
+
+    except Exception as e:
+        print(f"Error fetching Interruption_free_score for region {region}: {e}")
+        return 0
+
+
+def evaluate_regions_for_spot_instances(preferred_region_list):
+    """
+    Evaluate each preferred region to decide if it's better to use spot instances or on-demand instances.
+
+    :param preferred_region_list: A list of preferred regions to evaluate.
+    :return: A list of regions that are good for spot instances (Total Score >= 4).
+    """
+    suitable_regions = []
+
+    for region in preferred_region_list:
+        spot_placement_score = fetch_highest_sps_score(region)
+        stability_score = fetch_interruption_free_score(region)
+        total_score = spot_placement_score + stability_score
+
+        if total_score >= 4:
+            print(f"Region {region} is good for spot instances (Total Score: {total_score}).")
+            suitable_regions.append(region)
+        else:
+            print(f"Region {region} is excluded due to low total score (Total Score: {total_score}).")
+
+    if not suitable_regions:
+        print("None of the regions are suitable for spot instances.")
+        print("It is recommended to try using on-demand instances.")
+
+    return suitable_regions
+
+
 def batch_launch_spot_instance(aws_credentials, number_of_spot_instances):
+    print("Starting the launch_spot_instance function...")
+
     user_data_encoded = generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
+    print(f"Generated user data script: {user_data_encoded[:50]}...")  # Display the first 50 characters for brevity
 
     response = table.scan()
 
     items = response.get('Items', [])
+    print(f"Scanned items: {items}")
     if not items:
+        print("No items found in the table.")
         raise Exception("NoItemsAvailable: No items found in the response.")
 
     available_items = [item for item in items if item['region'] in target_regions]
+    print(f"Filtered available items based on target regions: {available_items}")
     if not available_items:
         raise Exception("NoItemsAvailable: No items available in the specified target regions.")
+
+    # Evaluate regions based on SPS and Interruption Free Scores
+    print("Evaluating regions based on SPS and Interruption Free Scores...")
+    suitable_regions = evaluate_regions_for_spot_instances(target_regions)
+    print(f"Suitable regions: {suitable_regions}")
+    if not suitable_regions:
+        print("No suitable regions found after evaluation.")
+        raise Exception("No suitable regions based on SPS and Interruption Free scores.")
+
+    # Filter available items to only include those in suitable regions
+    available_items = [item for item in available_items if item['region'] in suitable_regions]
+    print(f"Available items after filtering by suitable regions: {available_items}")
+    if not available_items:
+        print("No items available in the suitable regions.")
+        raise Exception("NoItemsAvailable: No items available in the suitable regions.")
 
     sorted_items = sorted(available_items, key=lambda x: float(x['price']))
     active_instance_count = 0
