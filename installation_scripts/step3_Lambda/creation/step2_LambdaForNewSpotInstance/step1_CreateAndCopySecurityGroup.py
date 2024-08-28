@@ -1,4 +1,5 @@
 # Multi-Region Security Group Creator
+# This is a script that creates a security group in a specified region and copies it to other regions.
 
 import configparser
 

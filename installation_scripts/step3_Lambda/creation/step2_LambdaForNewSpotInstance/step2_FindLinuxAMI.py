@@ -1,21 +1,27 @@
-# Single-Region AMI Finder
+import configparser
 import boto3
+from pathlib import Path
 
 
-def get_ami_ids_for_all_regions(description):
+def find_config_file(filename='conf.ini'):
+    current_dir = Path(__file__).resolve().parent
+    while current_dir != current_dir.parent:
+        config_file = current_dir / filename
+        if config_file.is_file():
+            print(f"Config file found at {config_file}")
+            return config_file
+        current_dir = current_dir.parent
+    return None
+
+
+def get_ami_ids_for_selected_regions(description, regions):
     """
-    Fetch AMI IDs across all AWS regions for AMIs matching the given description.
+    Fetch AMI IDs across selected AWS regions for AMIs matching the given description.
 
     :param description: The description of the AMI to search for.
+    :param regions: A list of regions to search in.
     :return: A dictionary mapping region names to AMI IDs.
     """
-    ec2_client = boto3.client('ec2', region_name='us-east-1')
-
-    # Fetch all available regions
-    print("Fetching available regions...")
-    regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
-    print(f"Found regions: {regions}")
-
     ami_dict = {}
     for region in regions:
         try:
@@ -26,7 +32,9 @@ def get_ami_ids_for_all_regions(description):
 
             # Check if we found an AMI for the current region
             if response['Images']:
-                ami_dict[region] = response['Images'][0]['ImageId']
+                ami_id = response['Images'][0]['ImageId']
+                print(f"Found AMI: {ami_id} in region: {region}")
+                ami_dict[region] = ami_id
             else:
                 print(f"No AMI found for '{description}' in {region}.")
         except Exception as e:
@@ -35,10 +43,28 @@ def get_ami_ids_for_all_regions(description):
     return ami_dict
 
 
-# Example usage
-description = "Amazon Linux 2023 AMI 2023.3.20240312.0 x86_64 HVM kernel-6.1"  # This could change in the future
+# ====================== MAIN =================
 
-ami_ids = get_ami_ids_for_all_regions(description)
+# Example usage
+# make sure to check if  ami description is still valid
+description = "Amazon Linux 2023 AMI 2023.5.20240819.0 x86_64 HVM kernel-6.1"  # Update this to match your exact need
+
+# Initialize the parser and read the ini file
+config = configparser.ConfigParser()
+
+conf_file_path = find_config_file()
+config_path = str(conf_file_path)
+config.read(config_path)
+
+# Extract the 'regions' entry from the 'settings' section
+regions_string = config.get('settings', 'regions_to_use')
+
+# Convert the comma-separated string to a list
+selected_regions = [region.strip() for region in regions_string.split(',')]
+
+print(f"Searching for AMI in regions: {selected_regions}")
+
+ami_ids = get_ami_ids_for_selected_regions(description, selected_regions)
 print("AMI IDs found:", ami_ids)
 
 print("AMI IDs found for the regions:")
@@ -52,4 +78,3 @@ with open(ami_ids_file, 'w') as f:
         f.write(f"{region} {ami_id}\n")
 
 print(f"AMI IDs have been saved to '{ami_ids_file}'")
-

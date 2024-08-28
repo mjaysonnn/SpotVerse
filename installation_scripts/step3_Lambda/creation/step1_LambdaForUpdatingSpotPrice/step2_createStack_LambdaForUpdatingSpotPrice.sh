@@ -1,9 +1,6 @@
 #!/bin/bash
 
-# Single Lambda Deployment Script
-
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
+# Single Lambda Deployment Script for Updating Spot Price
 
 find_config_file() {
     local current_dir=$(pwd)

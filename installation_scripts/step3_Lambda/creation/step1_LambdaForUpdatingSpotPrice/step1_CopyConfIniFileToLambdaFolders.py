@@ -2,6 +2,8 @@
 Single region deployment script
 
 This script is used to copy the 'conf.ini' file to the lambda_codes directory.
+We need this file to be present in the lambda_codes directory so that the lambda function can read the configuration
+
 """
 
 import shutil
