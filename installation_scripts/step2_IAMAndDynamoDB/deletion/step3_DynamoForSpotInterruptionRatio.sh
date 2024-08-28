@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Single region deletion script for DynamoDB for Spot Interruption Frequency
+
 # Function: monitor_stack_deletion_status
 # Continuously checks the deletion status of a specified AWS CloudFormation stack.
 monitor_stack_deletion_status() {

@@ -5,15 +5,15 @@
 
 # List of scripts to be executed in order
 declare -a scripts=(
-    "step1_S3Buckets/deletion/step1_S3ForCompleteAndInterruption.py"
-    "step1_S3Buckets/deletion/step2_S3ForOpenStatus.py"
-    "step1_S3Buckets/deletion/step3_S3ForStoringLambda.sh"
+#    "step1_S3Buckets/deletion/step1_S3ForCompleteAndInterruption.py"
+#    "step1_S3Buckets/deletion/step2_S3ForOpenStatus.py"
+#    "step1_S3Buckets/deletion/step3_S3ForStoringLambda.sh"
   #
-  #  "step2_IAMAndDynamoDB/deletion/step1_DynamoForSpotPrice.sh"
-  #  "step2_IAMAndDynamoDB/deletion/step2_IAMForAdmin.sh"
-  #  "step2_IAMAndDynamoDB/deletion/step3_DynamoForSpotInterruptionRatio.sh"
-  #  "step2_IAMAndDynamoDB/deletion/step4_DynamoForSpotPlacementScore.sh"
-  #
+    "step2_IAMAndDynamoDB/deletion/step1_DynamoForSpotPrice.sh"
+    "step2_IAMAndDynamoDB/deletion/step2_IAMForAdmin.sh"
+    "step2_IAMAndDynamoDB/deletion/step3_DynamoForSpotInterruptionRatio.sh"
+    "step2_IAMAndDynamoDB/deletion/step4_DynamoForSpotPlacementScore.sh"
+
   #  "step3_Lambda/deletion/step1_LambdaForUpdatingSpotPrice/step1_LambdaForUpdatingSpotPrice.sh"
   #  "step3_Lambda/deletion/step2_LambdaForNewSpotInstance/deleteStack_step2_LambdaForNewSpotInstance.sh"
   #  "step3_Lambda/deletion/step3_LambdaForCheckingSpotRequest/deleteStack_step3_LambdaForCheckingSpotRequest.sh"

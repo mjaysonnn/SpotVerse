@@ -1,9 +1,8 @@
 #!/bin/bash
 
+# Single region deployment script for DynamoDB for Spot Placement Score
 # This script is for creating DynamoDB for Storing Spot Placement Score
 
-source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
-conda activate MultiCloudGalaxy
 
 # Function to get stack status
 get_stack_status() {

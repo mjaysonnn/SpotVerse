@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This Bash script is designed to delete an AWS CloudFormation stack
+# and monitor its deletion status until it is fully deleted.
+
+
 CONDA_BASE=$(conda info --base)
 source "$CONDA_BASE/etc/profile.d/conda.sh"
 
@@ -81,8 +85,6 @@ get_config_value() {
   fi
 }
 #===================================================================================================
-# This Bash script is designed to delete an AWS CloudFormation stack
-# and monitor its deletion status until it is fully deleted.
 
 echo "Deleting stack for creating IAM, and DynamoDB resources..."
 

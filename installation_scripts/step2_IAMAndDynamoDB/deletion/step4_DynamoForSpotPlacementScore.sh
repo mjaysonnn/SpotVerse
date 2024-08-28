@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This Bash script is designed to delete an AWS CloudFormation stack
+# and monitor its deletion status until it is fully deleted.
+
+
 # Function: monitor_stack_deletion_status
 # Continuously checks the deletion status of a specified AWS CloudFormation stack.
 monitor_stack_deletion_status() {
@@ -80,8 +84,7 @@ get_config_value() {
 }
 
 #===============================================================================
-# This Bash script is designed to delete an AWS CloudFormation stack
-# and monitor its deletion status until it is fully deleted.
+
 
 
 # Retrieve the stack name and region from the conf.ini file.

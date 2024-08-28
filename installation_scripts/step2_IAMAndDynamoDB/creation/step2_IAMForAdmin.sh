@@ -1,6 +1,9 @@
 #!/bin/bash
 
 # Single region deployment script
+# This script will create or update a CloudFormation stack for IAM for Admin
+# This will create an IAM role for the Admin Lambda function, to allow it to perform necessary actions
+
 
 CONDA_BASE=$(conda info --base)
 source "$CONDA_BASE/etc/profile.d/conda.sh"

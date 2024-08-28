@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Single region deployment script for DynamoDB for Spot Price
+# This script will create or update a CloudFormation stack for DynamoDB for Spot Price
 
 #CONDA_BASE=$(conda info --base)
 #source "$CONDA_BASE/etc/profile.d/conda.sh"

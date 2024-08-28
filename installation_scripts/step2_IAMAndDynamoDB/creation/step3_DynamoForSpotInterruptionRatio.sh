@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# This script is for creating DynamoDB for Storing Spot Interruption Frequency
+# Single region deployment script for DynamoDB for Spot Interruption Frequency
 
-source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
-conda activate MultiCloudGalaxy
 
 # Function to get stack status
 get_stack_status() {

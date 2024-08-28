@@ -5,14 +5,14 @@
 
 # List of scripts to be executed in order
 declare -a scripts=(
-  "step1_S3Buckets/creation/step1_S3ForCompleteAndInterruption.py"
-  "step1_S3Buckets/creation/step2_S3ForOpenStatus.py"
-  "step1_S3Buckets/creation/step3_S3ForStoringLambda.sh"
+#  "step1_S3Buckets/creation/step1_S3ForCompleteAndInterruption.py"
+#  "step1_S3Buckets/creation/step2_S3ForOpenStatus.py"
+#  "step1_S3Buckets/creation/step3_S3ForStoringLambda.sh"
 #
-#  "step2_IAMAndDynamoDB/creation/step1_DynamoForSpotPrice.sh"
-#  "step2_IAMAndDynamoDB/creation/step2_IAMForAdmin.sh"
-#  "step2_IAMAndDynamoDB/creation/step3_DynamoForSpotInterruptionRatio.sh"
-#  "step2_IAMAndDynamoDB/creation/step4_DynamoForSpotPlacementScore.sh"
+  "step2_IAMAndDynamoDB/creation/step1_DynamoForSpotPrice.sh"
+  "step2_IAMAndDynamoDB/creation/step2_IAMForAdmin.sh"
+  "step2_IAMAndDynamoDB/creation/step3_DynamoForSpotInterruptionRatio.sh"
+  "step2_IAMAndDynamoDB/creation/step4_DynamoForSpotPlacementScore.sh"
 #
 #  "step3_Lambda/creation/step1_LambdaForUpdatingSpotPrice/step1_CopyConfIniFileToLambdaFolders.py"
 #  "step3_Lambda/creation/step1_LambdaForUpdatingSpotPrice/step2_createStack_LambdaForUpdatingSpotPrice.sh"

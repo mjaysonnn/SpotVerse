@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This Bash script is designed to delete an AWS CloudFormation stack
+# and monitor its deletion status until it is fully deleted.
+
 CONDA_BASE=$(conda info --base)
 source "$CONDA_BASE/etc/profile.d/conda.sh"
 
@@ -54,38 +57,36 @@ delete_stack() {
 
 # Function to find the conf.ini file by searching up the directory tree
 find_config_file() {
-    local current_dir=$(pwd)
-    local root_dir="/"
+  local current_dir=$(pwd)
+  local root_dir="/"
 
-    while [[ "$current_dir" != "$root_dir" ]]; do
-        if [[ -f "$current_dir/conf.ini" ]]; then
-            echo "$current_dir/conf.ini"
-            return
-        fi
-        current_dir=$(dirname "$current_dir")
-    done
+  while [[ "$current_dir" != "$root_dir" ]]; do
+    if [[ -f "$current_dir/conf.ini" ]]; then
+      echo "$current_dir/conf.ini"
+      return
+    fi
+    current_dir=$(dirname "$current_dir")
+  done
 
-    echo "conf.ini not found." >&2
-    return 1
+  echo "conf.ini not found." >&2
+  return 1
 }
 
 # Function to extract a value from the conf.ini file
 get_config_value() {
-    local key=$1
-    local config_file=$(find_config_file)
+  local key=$1
+  local config_file=$(find_config_file)
 
-    if [[ -f "$config_file" ]]; then
-        awk -F "=" "/^$key[[:space:]]*=[[:space:]]*/ {print \$2}" "$config_file" | tr -d ' '
-    else
-        echo "Error: Configuration file not found." >&2
-        return 1
-    fi
+  if [[ -f "$config_file" ]]; then
+    awk -F "=" "/^$key[[:space:]]*=[[:space:]]*/ {print \$2}" "$config_file" | tr -d ' '
+  else
+    echo "Error: Configuration file not found." >&2
+    return 1
+  fi
 }
 
 # ========================== Main script ==========================
 
-# This Bash script is designed to delete an AWS CloudFormation stack
-# and monitor its deletion status until it is fully deleted.
 echo "PATH = $PATH"
 
 echo "Deleting stack for creating IAM, and DynamoDB resources..."
