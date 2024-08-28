@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# CloudFormation stack details
+# Description: This script deletes the CloudFormation stack for the CloudWatch alarm that monitors the Spot instance interruption ratio.
+
 
 # Function to find the conf.ini file by searching up the directory tree
 find_config_file() {
