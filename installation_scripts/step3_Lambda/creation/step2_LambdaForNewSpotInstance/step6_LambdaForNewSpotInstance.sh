@@ -2,9 +2,6 @@
 
 # Multi-Region Lambda Deployment Script
 
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
-
 # Function to Zip and Upload Lambda Code to S3
 zip_and_upload() {
   cd "$LAMBDA_CODE_DIRECTORY" || {
@@ -48,34 +45,33 @@ manage_cloudformation_stack() {
 
 # Function to find the conf.ini file by searching up the directory tree
 find_config_file() {
-    local current_dir=$(pwd)
-    local root_dir="/"
+  local current_dir=$(pwd)
+  local root_dir="/"
 
-    while [[ "$current_dir" != "$root_dir" ]]; do
-        if [[ -f "$current_dir/conf.ini" ]]; then
-            echo "$current_dir/conf.ini"
-            return
-        fi
-        current_dir=$(dirname "$current_dir")
-    done
+  while [[ "$current_dir" != "$root_dir" ]]; do
+    if [[ -f "$current_dir/conf.ini" ]]; then
+      echo "$current_dir/conf.ini"
+      return
+    fi
+    current_dir=$(dirname "$current_dir")
+  done
 
-    echo "conf.ini not found." >&2
-    return 1
+  echo "conf.ini not found." >&2
+  return 1
 }
 
 # Function to extract a value from the conf.ini file
 get_config_value() {
-    local key=$1
-    local config_file=$(find_config_file)
+  local key=$1
+  local config_file=$(find_config_file)
 
-    if [[ -f "$config_file" ]]; then
-        awk -F "=" "/^$key[[:space:]]*=[[:space:]]*/ {print \$2}" "$config_file" | tr -d ' '
-    else
-        echo "Error: Configuration file not found." >&2
-        return 1
-    fi
+  if [[ -f "$config_file" ]]; then
+    awk -F "=" "/^$key[[:space:]]*=[[:space:]]*/ {print \$2}" "$config_file" | tr -d ' '
+  else
+    echo "Error: Configuration file not found." >&2
+    return 1
+  fi
 }
-
 
 ################################################################    #################################   #################################
 # Initialize Global Variables
@@ -84,14 +80,14 @@ INITIAL_DIR="$PWD"
 BUCKET_PREFIX=$(get_config_value "lambda_deployment_bucket_name")
 FILENAME="template_LambdaForNewSpotInstance.yaml" # Assuming this is static and doesn't need fetching
 STACK_NAME=$(get_config_value "StackName_LambdaForNewSpotInstance")
-DESIRED_STATUS="CREATE_COMPLETE" # Assuming static value
+DESIRED_STATUS="CREATE_COMPLETE"            # Assuming static value
 DESIRED_STATUS_FOR_UPDATE="UPDATE_COMPLETE" # Assuming static value
 regions_string=$(get_config_value "regions_to_use")
 
 # Verify if the variables were set
 if [ -z "$BUCKET_PREFIX" ] || [ -z "$STACK_NAME" ] || [ -z "$regions_string" ]; then
-    echo "Error: Failed to retrieve configuration values from conf.ini"
-    exit 1
+  echo "Error: Failed to retrieve configuration values from conf.ini"
+  exit 1
 fi
 
 REGIONS=($(echo "$regions_string" | tr "," " "))

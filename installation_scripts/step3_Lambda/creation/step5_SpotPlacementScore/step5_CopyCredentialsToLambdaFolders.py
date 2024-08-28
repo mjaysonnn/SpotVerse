@@ -1,3 +1,4 @@
+"""Single Region Copy AWS Credentials to Lambda Folders"""
 import configparser
 import os
 

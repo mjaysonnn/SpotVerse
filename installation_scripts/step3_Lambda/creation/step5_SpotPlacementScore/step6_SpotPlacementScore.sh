@@ -1,9 +1,7 @@
 #!/bin/bash
 
+# Single region
 # This is for the Lambda function that will be used to insert the Spot Placement Score into the DynamoDB table.
-
-source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
-conda activate MultiCloudGalaxy
 
 # Function to Zip and Upload Lambda Code to S3
 zip_and_upload() {

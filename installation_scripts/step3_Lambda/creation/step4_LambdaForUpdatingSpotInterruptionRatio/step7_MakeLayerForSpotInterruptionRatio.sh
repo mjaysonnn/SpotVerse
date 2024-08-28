@@ -2,9 +2,6 @@
 
 # This is for the Lambda layer that contains the spotinfo executable
 
-source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
-conda activate MultiCloudGalaxy
-
 # Extract configurations from conf.ini
 
 # Function to find the conf.ini file by searching up the directory tree

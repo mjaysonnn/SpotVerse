@@ -1,9 +1,7 @@
 #!/bin/bash
 
+# Single region
 # This is for the Lambda function that will be used to insert the spot interruption frequency into the database.
-
-source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
-conda activate MultiCloudGalaxy
 
 # Function to Zip and Upload Lambda Code to S3
 zip_and_upload() {
@@ -86,7 +84,6 @@ BUCKET_PREFIX=$(get_config_value "lambda_deployment_bucket_name")
 FILENAME="template_step6_SpotInterruptionRatio.yaml"
 #STACK_NAME=$(awk -F "=" '/StackName_LambdaForSpotInterruptionRatio/ {print $2}' ../conf.ini | tr -d ' ')
 STACK_NAME=$(get_config_value "StackName_LambdaForSpotInterruptionRatio")
-
 
 DESIRED_STATUS="CREATE_COMPLETE"
 DESIRED_STATUS_FOR_UPDATE="UPDATE_COMPLETE"

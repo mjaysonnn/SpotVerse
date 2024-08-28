@@ -1,3 +1,4 @@
+"""Multi-region security group creation and copying."""
 import configparser
 
 import boto3
