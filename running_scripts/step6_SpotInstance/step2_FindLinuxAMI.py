@@ -3,6 +3,12 @@ import boto3
 from pathlib import Path
 
 
+# If you are running Galaxy, you may not need to run this script.
+# The AMI IDs are already provided in the `ami_ids.txt` file.
+# This script is for finding the AMI IDs of the Amazon Linux 2 AMI in different regions.
+
+
+
 def find_config_file(filename='conf.ini'):
     current_dir = Path(__file__).resolve().parent
     while current_dir != current_dir.parent:

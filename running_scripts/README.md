@@ -67,6 +67,7 @@ Here’s the updated section with the additional instructions:
      ./run_all_in_one.sh
      ```
    - The script will prompt you for confirmation before proceeding. Press `yes` or `enter` to continue.
+   - Note if you are running Galaxy, you can omit step2_FindLinuxAMI.py in the script, since we have to use the Galaxy AMI.
 
 2. **Launching Spot Instances**:
    - After deploying the initial resources, navigate to the directory containing the Spot Instance scripts:

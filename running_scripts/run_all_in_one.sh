@@ -1,9 +1,7 @@
 #!/bin/bash
 
-#CONDA_BASE=$(conda info --base)
-#source "$CONDA_BASE/etc/profile.d/conda.sh"
-
 # List of scripts to be executed in order
+# Note: Skip the FindLinuxAMI scripts if you are running Galaxy, as they are not needed.
 declare -a scripts=(
   "step1_S3Buckets/creation/step1_S3ForCompleteAndInterruption.py"
   "step1_S3Buckets/creation/step2_S3ForOpenStatus.py"
@@ -17,30 +15,30 @@ declare -a scripts=(
   "step3_Lambda/creation/step1_LambdaForUpdatingSpotPrice/step2_createStack_LambdaForUpdatingSpotPrice.sh"
 
   "step3_Lambda/creation/step2_LambdaForNewSpotInstance/step1_CreateAndCopySecurityGroup.py"
-  "step3_Lambda/creation/step2_LambdaForNewSpotInstance/step2_FindLinuxAMI.py"
+  "step3_Lambda/creation/step2_LambdaForNewSpotInstance/step2_FindLinuxAMI.py"  # Skip this if running Galaxy
   "step3_Lambda/creation/step2_LambdaForNewSpotInstance/step3_ImportKeyPair.py"
   "step3_Lambda/creation/step2_LambdaForNewSpotInstance/step4_CopyConfIniFileToLambdaFolders.py"
   "step3_Lambda/creation/step2_LambdaForNewSpotInstance/step5_CopyCredentialsToLambdaFolders.py"
   "step3_Lambda/creation/step2_LambdaForNewSpotInstance/step6_LambdaForNewSpotInstance.sh"
 
   "step3_Lambda/creation/step3_LambdaForCheckingSpotRequest/step1_CreateAndCopySecurityGroup.py"
-  "step3_Lambda/creation/step3_LambdaForCheckingSpotRequest/step2_FindLinuxAMI.py"
+  "step3_Lambda/creation/step3_LambdaForCheckingSpotRequest/step2_FindLinuxAMI.py"  # Skip this if running Galaxy
   "step3_Lambda/creation/step3_LambdaForCheckingSpotRequest/step3_CopyConfIniFileToLambdaFolders.py"
   "step3_Lambda/creation/step3_LambdaForCheckingSpotRequest/step4_CopyCredentialsToLambdaFolders.py"
   "step3_Lambda/creation/step3_LambdaForCheckingSpotRequest/step5_LambdaForCheckingSpotRequest.sh"
 
-  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step1_CreateAndCopySecurityGroup.py"        # Single
-  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step2_FindLinuxAMI.py"                      # Single
-  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step4_CopyConfIniFileToLambdaFolders.py"    # Single
-  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step5_CopyCredentialsToLambdaFolders.py"    # Single
-  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step6_SpotInterruptionRatio.sh"             # Single
-  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step7_MakeLayerForSpotInterruptionRatio.sh" # Single
+  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step1_CreateAndCopySecurityGroup.py"
+  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step2_FindLinuxAMI.py"  # Skip this if running Galaxy
+  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step4_CopyConfIniFileToLambdaFolders.py"
+  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step5_CopyCredentialsToLambdaFolders.py"
+  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step6_SpotInterruptionRatio.sh"
+  "step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/step7_MakeLayerForSpotInterruptionRatio.sh"
 
-  "step3_Lambda/creation/step5_SpotPlacementScore/step1_CreateAndCopySecurityGroup.py"     # Single
-  "step3_Lambda/creation/step5_SpotPlacementScore/step2_FindLinuxAMI.py"                   # Single
-  "step3_Lambda/creation/step5_SpotPlacementScore/step4_CopyConfIniFileToLambdaFolders.py" # Single
-  "step3_Lambda/creation/step5_SpotPlacementScore/step5_CopyCredentialsToLambdaFolders.py" # Single
-  "step3_Lambda/creation/step5_SpotPlacementScore/step6_SpotPlacementScore.sh"             # Single
+  "step3_Lambda/creation/step5_SpotPlacementScore/step1_CreateAndCopySecurityGroup.py"
+  "step3_Lambda/creation/step5_SpotPlacementScore/step2_FindLinuxAMI.py"  # Skip this if running Galaxy
+  "step3_Lambda/creation/step5_SpotPlacementScore/step4_CopyConfIniFileToLambdaFolders.py"
+  "step3_Lambda/creation/step5_SpotPlacementScore/step5_CopyCredentialsToLambdaFolders.py"
+  "step3_Lambda/creation/step5_SpotPlacementScore/step6_SpotPlacementScore.sh"
 
   "step4_StepFunctions/creation/step1_StepFunctionForNewSpotInstance.sh"
   "step4_StepFunctions/creation/step2_StepFunctionForOpenStatus.sh"
@@ -50,7 +48,6 @@ declare -a scripts=(
   "step5_CloudWatch/creation/step3_CloudWatchForLambdaForStepFunctionForOpenStatus.sh"
   "step5_CloudWatch/creation/step4_CloudWatchForSpotInterruptionRatio.sh"
   "step5_CloudWatch/creation/step5_CloudWatchForSpotPlacementScore.sh"
-
 )
 
 # Save the current working directory
