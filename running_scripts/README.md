@@ -77,7 +77,7 @@ Here’s the updated section with the additional instructions:
        cd step6_SpotInstance
        python3 step1_CreateAndCopySecurityGroup.py         
        python3 step2_FindLinuxAMI.py
-       python3 step3.py[step3_StartSpotInstances.py
+       python3 step3_StartSpotInstances.py
        ```
    - During the execution of these steps, you may be prompted for additional inputs or confirmations. Follow the prompts as instructed, and the rest of the process will be taken care of by the scripts.
 
