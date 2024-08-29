@@ -27,7 +27,7 @@ Region_DynamoDBForSpotPlacementScore = config.get('settings', 'Region_DynamoForS
 Region_DynamoDBForStabilityScore = config.get('settings', 'Region_DynamoForSpotInterruptionRatio')
 
 print(f"Target_regions: {target_regions}")
-print(f"Factor from conf.ini: {factor}")
+# print(f"Factor from conf.ini: {factor}")
 print(f"sleep_time: {sleep_time}")
 print(f"instance_type: {instance_type}")
 print(f"key_name: {key_name}")
@@ -401,7 +401,7 @@ def batch_launch_spot_instance(aws_credentials, number_of_spot_instances):
         print(f"region: {region}")
         print(f"Availability zone: {availability_zone}")
         print(f"Original spot price: {str(item['price'])}")
-        print(f"Factor: {factor}")
+        # print(f"Factor: {factor}")
         print(f"New spot price: {spot_price}")
 
         ec2_client = boto3.client('ec2', region_name=region)

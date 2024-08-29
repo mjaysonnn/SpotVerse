@@ -153,18 +153,18 @@ def count_spot_requests_by_state(ec2_client, request_ids):
         if successful_request_ids:
             print(f"Successful request IDs: {successful_request_ids}")
             print("Uploading successful request IDs to S3...")
-            upload_request_to_s3(successful_request_ids, spot_tracking_s3_bucket_name, region_to_launch_spot_instance,
+            upload_request_to_s3(successful_request_ids, spot_tracking_s3_bucket_name, region_for_s3_for_checking_spot_request,
                                  "successful")
 
         if open_request_ids:
             print(f"Open request IDs: {open_request_ids}")
             print("Uploading open request IDs to S3...")
-            upload_request_to_s3(open_request_ids, spot_tracking_s3_bucket_name, region_to_launch_spot_instance, "open")
+            upload_request_to_s3(open_request_ids, spot_tracking_s3_bucket_name, region_for_s3_for_checking_spot_request, "open")
 
         if failed_request_ids:
             print(f"Failed request IDs: {failed_request_ids}")
             print("Uploading failed request IDs to S3...")
-            upload_request_to_s3(failed_request_ids, spot_tracking_s3_bucket_name, region_to_launch_spot_instance,
+            upload_request_to_s3(failed_request_ids, spot_tracking_s3_bucket_name, region_for_s3_for_checking_spot_request,
                                  "failed")
 
     except botocore.exceptions.ClientError as e:
@@ -581,7 +581,7 @@ def fetch_spot_price_data(suitable_regions: List[str] = None) -> dict:
     """
     Fetch spot price data from DynamoDB.
     If there are suitable regions, fetch data for those regions.
-    Otherwise, fetch data for the region specified in region_to_launch_spot_instance.
+    Otherwise, fetch data for the region specified in region_for_s3_for_checking_spot_request.
 
     :param suitable_regions: List of regions that are considered suitable for spot instances.
     :return: Dictionary of responses for the specified regions.
@@ -596,7 +596,7 @@ def fetch_spot_price_data(suitable_regions: List[str] = None) -> dict:
     if suitable_regions:
         regions_to_query = suitable_regions
     else:
-        regions_to_query = [region_to_launch_spot_instance]
+        regions_to_query = [region_for_s3_for_checking_spot_request]
 
     # Fetch data for the specified regions (suitable or fallback region)
     for region in regions_to_query:
@@ -827,7 +827,7 @@ sleep_time = int(config.get('settings', 'sleep_time'))
 number_of_instances_to_launch = int(config.get('settings', 'number_of_spot_instances'))
 regions = [region.strip() for region in config.get('settings', 'regions_to_use').split(',')]
 factor = Decimal(config.getfloat('settings', 'spot_price_factor'))
-region_to_launch_spot_instance = (config.get('settings', 'region_to_start_ec2_with'))
+region_for_s3_for_checking_spot_request = (config.get('settings', 'Region_S3ForCheckingSpotRequest'))
 instance_type = config.get('settings', 'instance_type')
 spot_tracking_s3_bucket_name = config.get('settings', 'spot_tracking_s3_bucket_name')
 Region_DynamodbForSpotPrice = config.get('settings', 'Region_DynamodbForSpotPrice')
@@ -841,7 +841,7 @@ print(f"Sleep time: {sleep_time}")
 print(f"Number of spot instances: {number_of_instances_to_launch}")
 print(f"Regions: {regions}")
 print(f"Factor from conf.ini: {factor}")
-print(f"Region to launch spot instance: {region_to_launch_spot_instance}")
+print(f"Region to for s3 of checking spot request : {region_for_s3_for_checking_spot_request}")
 print(f"Instance type: {instance_type}")
 print(f"Spot tracking S3 bucket name: {spot_tracking_s3_bucket_name}")
 print(f"Spot Price DynamoDB Region: {Region_DynamodbForSpotPrice}")

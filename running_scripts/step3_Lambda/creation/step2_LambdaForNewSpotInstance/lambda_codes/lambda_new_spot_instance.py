@@ -34,7 +34,7 @@ Region_DynamoDBForStabilityScore = config.get('settings', 'Region_DynamoForSpotI
 
 print(f"Configured target regions: {target_regions}")
 print(f"target_regions: {target_regions}")
-print(f"Factor from conf.ini: {factor}")
+# print(f"Factor from conf.ini: {factor}")
 print(f"sleep_time: {sleep_time}")
 print(f"number_of_spot_instances: {number_of_spot_instances}")
 print(f"instance_type: {instance_type}")
