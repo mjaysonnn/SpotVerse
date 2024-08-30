@@ -675,13 +675,13 @@ def launch_all_spot_instances(response_dict):
         while instances_to_request > 0:  # Loop until all instances are launched
             for item in sorted_items:
                 region = item['region']
-                spot_price = str(factor * item['price'])
+                spot_price = str(item['price'])
                 availability_zone = item['availability_zone']
 
                 auto_color_print(f"Attempting with Availability Zone: {availability_zone}, "
                                  f"Price: {spot_price}, Region: {region}")
 
-                print_info({"Factor": factor, "Original spot price": str(item['price']),
+                print_info({"Original spot price": str(item['price']),
                             "Updated spot price": spot_price, "Region": region,
                             "AMI ID": ami_id, "Security Group ID": security_group_ids,
                             "Instance type": instance_type, "Key name": key_name,
@@ -826,7 +826,7 @@ interrupt_s3_bucket_name = config.get('settings', 'interrupt_s3_bucket_name')
 sleep_time = int(config.get('settings', 'sleep_time'))
 number_of_instances_to_launch = int(config.get('settings', 'number_of_spot_instances'))
 regions = [region.strip() for region in config.get('settings', 'regions_to_use').split(',')]
-factor = Decimal(config.getfloat('settings', 'spot_price_factor'))
+# factor = Decimal(config.getfloat('settings', 'spot_price_factor'))
 region_for_s3_for_checking_spot_request = (config.get('settings', 'Region_S3ForCheckingSpotRequest'))
 instance_type = config.get('settings', 'instance_type')
 spot_tracking_s3_bucket_name = config.get('settings', 'spot_tracking_s3_bucket_name')
@@ -840,7 +840,7 @@ print(f"Interrupt bucket name: {interrupt_s3_bucket_name}")
 print(f"Sleep time: {sleep_time}")
 print(f"Number of spot instances: {number_of_instances_to_launch}")
 print(f"Regions: {regions}")
-print(f"Factor from conf.ini: {factor}")
+# print(f"Factor from conf.ini: {factor}")
 print(f"Region to for s3 of checking spot request : {region_for_s3_for_checking_spot_request}")
 print(f"Instance type: {instance_type}")
 print(f"Spot tracking S3 bucket name: {spot_tracking_s3_bucket_name}")

@@ -17,7 +17,7 @@ SLEEP_TIME_SPOT_REQUEST = int(config.get('settings', 'sleep_time_for_spot_reques
 complete_bucket_name = config.get('settings', 'complete_s3_bucket_name')
 interrupt_s3_bucket_name = config.get('settings', 'interrupt_s3_bucket_name')
 sleep_time = int(config.get('settings', 'sleep_time'))
-factor = Decimal(config.getfloat('settings', 'spot_price_factor'))
+# factor = Decimal(config.getfloat('settings', 'spot_price_factor'))
 instance_type = config.get('settings', 'instance_type')
 key_name = config.get('settings', 'key_name')
 spot_tracking_s3_bucket_name = config.get('settings', 'spot_tracking_s3_bucket_name')
@@ -396,7 +396,7 @@ def batch_launch_spot_instance(aws_credentials, number_of_spot_instances):
 
         region = item['region']
         availability_zone = item['availability_zone']
-        spot_price = str(factor * item['price'])
+        spot_price = str(item['price'])
 
         print(f"region: {region}")
         print(f"Availability zone: {availability_zone}")
