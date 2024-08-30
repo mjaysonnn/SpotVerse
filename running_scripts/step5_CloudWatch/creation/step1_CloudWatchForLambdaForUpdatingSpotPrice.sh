@@ -1,7 +1,6 @@
 #!/bin/bash
 
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
+
 
 # Function to check the stack status
 check_stack_status() {
