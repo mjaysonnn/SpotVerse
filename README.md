@@ -16,6 +16,7 @@
    - Run the following command to configure your AWS CLI:
      ```bash
      aws configure
+     pip install -r requirements.txt
      ```
    - Ensure that the provided credentials have the necessary permissions.
 
