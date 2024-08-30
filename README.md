@@ -6,4 +6,4 @@
 
 - **running_scripts**: Contains the scripts for deploying resources, running non-Galaxy workloads, and parsing output for results. 
 - 
-- **galaxy_scripts**: Contains the scripts specifically for deploying the Galaxy framework.
+- **galaxy_scripts**: Contains the scripts specifically for deploying the Galaxy framework. It contains installation on Galaxy Framework and copying generated AMI to other regions. 
