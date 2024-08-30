@@ -4,6 +4,6 @@
 
 ## Directory Structure
 
-- **running_scripts**: Contains the scripts for deploying resources and running non-Galaxy workloads.
+- **running_scripts**: Contains the scripts for deploying resources, running non-Galaxy workloads, and parsing output for results. 
+- 
 - **galaxy_scripts**: Contains the scripts specifically for deploying the Galaxy framework.
-
