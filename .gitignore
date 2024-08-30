@@ -1,2 +1,13 @@
 .idea
 /galaxy_scripts/ami_ids.txt
+/running_scripts/step7_ParseAndAnalysis/data
+**/**/credentials.txt
+/running_scripts/step3_Lambda/creation/step5_SpotPlacementScore/lambda_codes/az_id_to_name_mapping.pkl
+/running_scripts/step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/layer/bin/spotinfo
+/running_scripts/step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/layer/spotinfo_layer.zip
+/running_scripts/step3_Lambda/creation/step5_SpotPlacementScore/lambda_codes/optimized_queries.pkl
+/running_scripts/step3_Lambda/creation/step2_LambdaForNewSpotInstance/lambda_codes/security_group_ids.txt
+/running_scripts/step3_Lambda/creation/step3_LambdaForCheckingSpotRequest/lambda_codes/security_group_ids.txt
+/running_scripts/step3_Lambda/creation/step4_LambdaForUpdatingSpotInterruptionRatio/lambda_codes/security_group_ids.txt
+/running_scripts/step3_Lambda/creation/step5_SpotPlacementScore/lambda_codes/security_group_ids.txt
+/running_scripts/step6_SpotInstance/security_group_ids.txt

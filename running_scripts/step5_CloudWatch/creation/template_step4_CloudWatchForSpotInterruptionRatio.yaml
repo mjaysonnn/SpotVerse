@@ -20,7 +20,7 @@ Resources:
   SpotInterruptionRatioCheckEventRule:
     Type: "AWS::Events::Rule"
     Properties:
-      Description: "Event Rule to invoke Lambda function to check Spot Placement Score every 1 hour."
+      Description: "Event Rule to invoke Lambda function to check Spot Interruption Score every 1 hour."
       ScheduleExpression: "rate(60 minutes)"
       State: "ENABLED"
       Targets:

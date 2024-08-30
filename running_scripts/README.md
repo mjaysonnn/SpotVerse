@@ -25,15 +25,25 @@
 
 ### Configuration
 
-1. **Setting Up Regions**:
-   - Define the regions to use in the `conf.ini` file. You can specify multiple regions or a single region.
+Here's how you can update the section to reflect the behavior when `regions_to_use` is set to `None`, and how to change the header based on whether preferred regions are provided:
+
+---
+
+Here's the updated section with the header "Setting Preferred Regions":
+
+---
+
+### 1. **Setting Preferred Regions**:
+   - Define the regions to use in the `conf.ini` file. You can specify multiple regions, a single region, or set it to `None`.
    - Example configuration for `conf.ini`:
      ```ini
      regions_to_use = us-east-1, us-west-2
      ```
    - **Recommendations**:
-     - Use `us-east-1` as the default region, especially for S3 buckets, DynamoDB, CloudWatch, and EventBridge, as these services are often initialized in `us-east-1`.
+     - Recommend to include `us-east-1` as in preferred regions, since `us-east-1` is default regions for S3.
      - When specifying multiple regions, resources will be created in all the listed regions.
+   - **Handling `None` or Missing Regions**:
+     - If `regions_to_use` is set to `None` or not defined in `conf.ini`, the script will automatically select regions from the list of `available_regions`.
 
 2. **Key Pair Configuration**:
    - Specify the key pair name in the `conf.ini` file.
@@ -72,6 +82,30 @@
        python3 step3_StartSpotInstances.py
        ```
    - During the execution of these steps, you may be prompted for additional inputs or confirmations. Follow the prompts as instructed, and the scripts will handle the rest.
+
+### 3. **Parsing the Output**:
+
+**Instructions**:
+
+1. **Fetching S3 Data**:
+   - The following scripts will retrieve data from your S3 bucket, including both completed and interrupted instances.
+2. **Data Parsing and Analysis**:
+   - Using AWS API, The scripts will then parse the fetched data, extracting details on instance types, start and end times, associated costs, and any interruptions that occurred.
+3. **Calculating Total Cost and Run Time**:
+   - Finally, the scripts will calculate the total cost and total run time of these instances, providing a detailed analysis of your cloud resource usage.
+
+```bash
+cd step7_ParseAndAnalysis || exit
+
+# Execute the Python scripts in the specified order
+python3 step_0_download_bucket_and_object.py
+python3 step_1_parse_data_and_save_all_info.py
+python3 step_2_load_pickle_and_save_spot_price_history.py
+python3 step_3_load_timestamp_and_get_total_cost.py
+python3 step_4_instance_completion_analysis.py
+python3 step_5_instance_interruption_analysis.py
+```
+
 
 ### Cleanup
 

@@ -2,10 +2,6 @@
 
 # This is to update Spot Placement Score in DynamoDB table.
 
-# Source the conda initialization script
-source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
-conda activate MultiCloudGalaxy
-
 # Function to check the stack status
 check_stack_status() {
   local stack_name=$1
@@ -41,10 +37,15 @@ create_or_update_stack() {
     echo "Stack $stack_name already exists, updating..."
 
     # Try to update the stack
-    aws cloudformation update-stack --stack-name "$stack_name" --template-body file://"$file_name" --capabilities CAPABILITY_NAMED_IAM --region "$region" --parameters ParameterKey=LambdaFunctionRegion,ParameterValue="$region"
+    update_output=$(aws cloudformation update-stack --stack-name "$stack_name" --template-body file://"$file_name" --capabilities CAPABILITY_NAMED_IAM --region "$region" --parameters ParameterKey=LambdaFunctionRegion,ParameterValue="$region" 2>&1)
 
-    check_stack_status "$stack_name" "$status_update" "$region"
-
+    # Check for "No updates are to be performed" error
+    if echo "$update_output" | grep -q "No updates are to be performed"; then
+      echo "No updates are necessary for stack $stack_name in region $region."
+    else
+      # Proceed to monitor stack status only if an update was actually performed
+      check_stack_status "$stack_name" "$status_update" "$region"
+    fi
   else
     echo "Creating new stack $stack_name..."
     aws cloudformation create-stack --stack-name "$stack_name" --template-body file://"$file_name" --capabilities CAPABILITY_NAMED_IAM --region "$region" --parameters ParameterKey=LambdaFunctionRegion,ParameterValue="$region"
