@@ -1,6 +1,0 @@
-boto3
-colorama
-pytz
-colorlog
-json
-matplotlib
