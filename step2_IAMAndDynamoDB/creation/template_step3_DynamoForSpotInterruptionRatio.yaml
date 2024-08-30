@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CloudFormation template for creating a DynamoDB table to store Spot Instance information
+
+Resources:
+  DynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: SpotInterruptionRatioTable
+      AttributeDefinitions:
+        - AttributeName: Region
+          AttributeType: S
+        - AttributeName: Interruption_free_score
+          AttributeType: N
+      KeySchema:
+        - AttributeName: Region
+          KeyType: HASH
+        - AttributeName: Interruption_free_score
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10
+      Tags:
+        - Key: Name
+          Value: SpotInfoDynamoDBTable
+
+Outputs:
+  TableName:
+    Description: Name of the DynamoDB table
+    Value: !Ref DynamoDBTable
+  TableArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt DynamoDBTable.Arn
