@@ -84,14 +84,7 @@
 
 3. **Parsing the Output**:
 
-**Instructions**:
-
-1. **Fetching S3 Data**:
-   - The following scripts will retrieve data from your S3 bucket, including both completed and interrupted instances.
-2. **Data Parsing and Analysis**:
-   - Using AWS API, The scripts will then parse the fetched data, extracting details on instance types, start and end times, associated costs, and any interruptions that occurred.
-3. **Calculating Total Cost and Run Time**:
-   - Finally, the scripts will calculate the total cost and total run time of these instances, providing a detailed analysis with matplot
+The following scripts will retrieve data from your S3 bucket, including both completed and interrupted instances. Using the AWS API, the scripts will then parse the fetched data, extracting details on instance types, start and end times, associated costs, and any interruptions that occurred. Finally, the scripts will calculate the total cost and total run time of these instances, providing a detailed analysis with Matplotlib.
 
 ```bash
 cd step7_ParseAndAnalysis || exit
