@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template to create a Step Function.
+
+Parameters:
+  AccountID:
+    Description: AWS Account ID
+    Type: String
+
+  Region:
+    Description: AWS Region
+    Type: String
+    Default: us-east-1
+    ConstraintDescription: Must specify a valid AWS region.
+
+  StateMachineName:
+    Description: Name of the Step Functions State Machine
+    Type: String
+    Default: DefaultStateMachineName
+
+Resources:
+  MyStateMachine:
+    Type: 'AWS::StepFunctions::StateMachine'
+    Properties:
+      Name: !Ref StateMachineName  # This line is added to set the state machine name
+      DefinitionString:
+        Fn::Sub:
+          - |-
+            {
+              "Comment": "A state machine that executes a Lambda and retries on failure.",
+              "StartAt": "InvokeLambda",
+              "States": {
+                "InvokeLambda": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:lambda:${Region}:${AccountID}:function:lambda_new_spot_instance",
+                  "Retry": [
+                    {
+                      "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "SpotRequestNotFulfilled",
+                        "Exception",
+                        "MaxSpotInstanceCountExceeded",
+                        "ClientError"
+                      ],
+                      "IntervalSeconds": 600, 
+                      "BackoffRate": 2.0,  
+                      "MaxAttempts": 5 
+                    }
+                  ],
+                  "End": true
+                }
+              }
+            }
+          - { AccountID: !Ref AccountID, Region: !Ref Region }
+      RoleArn: !GetAtt MyExecutionRole.Arn
+
+  MyExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Sub arn:aws:lambda:${Region}:${AccountID}:function:lambda_new_spot_instance
+
+Outputs:
+  StateMachineArn:
+    Description: ARN of the state machine.
+    Value: !Ref MyStateMachine
