@@ -1,26 +1,45 @@
 """
 This script parses the data and saves all the information in a pickle file.
 """
+import configparser
 import logging
 import os
 import pickle
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Optional
 
 import pytz
 
-from directory_selector import select_subdirectory
 from my_logger import LoggerSetup
+from utils import FileType, Instance
 
 logger = LoggerSetup.setup_logger()
 
-ON_DEMAND_COST_PER_HOUR = 0.192
-RUNNING_HOURS = 10
-NUMBER_OF_INSTANCES = 40
-INSTANCE_TYPE = 'm5.xlarge'
 
-from utils import FileType, Instance
+def find_config_file(filename='conf.ini'):
+    """ Find the configuration file in the parent directories of the current file. """
+    current_dir = Path(__file__).resolve().parent
+    while current_dir != current_dir.parent:
+        config_file = current_dir / filename
+        if config_file.is_file():
+            print(f"Config file found at {config_file}")
+            return config_file
+        current_dir = current_dir.parent
+    return None
+
+
+# Initialize the parser and read the ini file
+config = configparser.ConfigParser()
+conf_file_path = find_config_file()
+config_path = str(conf_file_path)
+config.read(config_path)
+
+# Fetch configurations
+
+INSTANCE_TYPE = config.get('settings', 'instance_type')
+print(f"instance_type: {INSTANCE_TYPE}")
 
 
 def extract_content(text: str, pattern: str) -> str:
@@ -34,8 +53,6 @@ def extract_content(text: str, pattern: str) -> str:
 def convert_to_datetime(datetime_str: str) -> Optional[datetime]:
     """
     Convert the datetime string to datetime object.
-    :param datetime_str:
-    :return:
     """
     try:
         # If the datetime string has a 'Z', replace it with '+00:00' to make it offset-aware
@@ -78,10 +95,8 @@ def parse_file_content_interruption(file_path: str) -> tuple:
         end_time = convert_to_datetime(extract_content(content, r'Spot Interruption Warning Time: (.+)'))
 
         cost_str = extract_content(content, r'Current Spot Price: (.+)')
-        if cost_str is not None:
-            cost = float(cost_str)
-        else:
-            cost = 0.0
+        cost = float(cost_str) if cost_str is not None else 0.0
+        if cost == 0.0:
             logger.debug("Cost was None, setting to 0.0")
 
         return instance_id, availability_zone, region, start_time, end_time, cost
@@ -164,7 +179,6 @@ def analyze_directory(base_directory: str, file_type: FileType) -> dict:
         for file_name in files:
             file_path = os.path.join(root, file_name)
             try:
-                # logger.debug(f"Processing {file_path}...")
                 if file_type == FileType.COMPLETE:
                     instance_id, availability_zone, region, start_time, end_time, cost = \
                         parse_file_content_complete(file_path)
@@ -205,15 +219,6 @@ def print_distribution(distributions: dict):
                  f"Instance ID: {distributions['second_max_end_instance_id']}")
     logging.info(f"Latest End Time: {distributions['global_max_end_time']}, "
                  f"Instance ID: {distributions['max_end_instance_id']}")
-
-    # for instance_id, instance_info in distributions["instances"].items():
-    #     logging.info(f"  {instance_id}:")
-    #     logging.info(f"    Start Time: {instance_info.start_time}")
-    #     logging.info(f"    End Time: {instance_info.end_time}")
-    #     logging.info(f"    Availability Zone: {instance_info.availability_zone}")
-    #     logging.info(f"    Cost Per Hour: {instance_info.cost_per_hour}")
-    #     logging.info(f"    Completion Hours: {instance_info.completion_hours}")
-    #     logging.info(f"    Total Cost: {instance_info.total_cost}")  # Add this line
 
     # Calculate and logging.info the total duration
     total_duration = distributions['global_max_end_time'] - distributions['global_min_start_time']
@@ -358,15 +363,12 @@ def get_subdirectories(path):
     return subdirectories
 
 
-####################################################################################################
-
 def find_directory(target_dir_name):
-    BaseDir = os.getcwd()
-    base_dir = BaseDir
+    base_dir = os.getcwd()
     global_total_cost = 0.0
     all_distributions = {}
 
-    selected_dir_path = select_subdirectory(base_dir, target_dir_name)
+    selected_dir_path = os.path.join(base_dir, target_dir_name)
     logger.debug(f"Selected directory path: {selected_dir_path}")
 
     subdirectories = get_subdirectories(selected_dir_path)

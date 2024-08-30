@@ -1,12 +1,15 @@
+import configparser
 import pickle
 import warnings
+import logging
+import os
+import matplotlib.pyplot as plt
+from pathlib import Path
+
+from my_logger import LoggerSetup
 
 # Suppress warnings judiciously
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-from directory_selector import select_subdirectory, load_data
-
-import logging
-from my_logger import LoggerSetup
 
 logger = LoggerSetup.setup_logger()
 logging.getLogger('boto3').setLevel(logging.WARNING)
@@ -14,10 +17,29 @@ logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 
-from utils import FileType, Instance
+def find_config_file(filename='conf.ini'):
+    """ Find the configuration file in the parent directories of the current file. """
+    current_dir = Path(__file__).resolve().parent
+    while current_dir != current_dir.parent:
+        config_file = current_dir / filename
+        if config_file.is_file():
+            print(f"Config file found at {config_file}")
+            return config_file
+        current_dir = current_dir.parent
+    return None
 
-import matplotlib.pyplot as plt
-import os
+
+# Initialize the parser and read the ini file
+config = configparser.ConfigParser()
+conf_file_path = find_config_file()
+config_path = str(conf_file_path)
+config.read(config_path)
+
+# Fetch configurations
+INSTANCE_TYPE = config.get('settings', 'instance_type')
+NUMBER_OF_INSTANCES = int(config.get('settings', 'number_of_spot_instances'))
+print(f"instance_type: {INSTANCE_TYPE}")
+print(f"number_of_spot_instances: {NUMBER_OF_INSTANCES}")
 
 
 def load_distributions(file_path: str) -> dict:
@@ -34,24 +56,25 @@ def load_distributions(file_path: str) -> dict:
 
 
 def sort_instances_by_end_time(instances):
+    """Sort instances by end time."""
     return sorted(instances, key=lambda x: x.end_time)
 
 
-def append_max_end_time(times, max_end_time, max_datasets=40):
-    while len(times) < max_datasets:
+def append_max_end_time(times, max_end_time):
+    """Append max end time to the list of times if needed."""
+    while len(times) < NUMBER_OF_INSTANCES:
         times.append(max_end_time)
-    return times[:max_datasets]
+    return times[:NUMBER_OF_INSTANCES]
 
 
 def convert_to_relative_times_hours(times, reference_time):
+    """Convert times to relative times in hours based on the reference time."""
     return [(t - reference_time).total_seconds() / 3600 for t in times]
 
 
 def plot_cumulative_completions(relative_times, cumulative_counts, max_end_time, min_start_time, save_dir,
                                 filename="cumulative_completions.png"):
-    """
-    Plots and saves a graph of cumulative completions.
-    """
+    """Plot and save a graph of cumulative completions."""
     plt.figure(figsize=(10, 6))
     plt.plot(relative_times, cumulative_counts, linestyle='-', marker='', color='b')
 
@@ -78,33 +101,23 @@ def plot_cumulative_completions(relative_times, cumulative_counts, max_end_time,
 
 
 def main():
-    BaseDir = os.getcwd()
-    base_dir = BaseDir
-    target_name = 'data'  # The target directory name to match against
-    selected_dir_path = select_subdirectory(base_dir, target_name)
+    selected_dir_path = os.path.join(os.getcwd(), 'data')
     logger.info(f"Selected directory path: {selected_dir_path}")
 
-    print("Which file do you want to use?")
-    print("1. filtered_distributions.pkl")
-    print("2. filtered_distributions_with_filled_complete_bucket.pkl")
-    choice = input("Enter the number (1 or 2): ").strip()
+    file_to_use = 'filtered_distributions.pkl'
+    loaded_distributions = load_distributions(os.path.join(selected_dir_path, file_to_use))
 
-    # Determine the file based on user input
-    if choice == '1':
-        file_to_use = 'filtered_distributions.pkl'
-    elif choice == '2':
-        file_to_use = 'filtered_distributions_with_filled_complete_bucket.pkl'
-    else:
-        print("Invalid choice.")
-        exit()  # Exit the script
+    complete_information = loaded_distributions.get('complete')
+    if complete_information is None:
+        logger.error(f"Failed to load 'complete' data from {file_to_use}.")
+        return
 
-    print(f"You've chosen to use: {file_to_use}")
-
-    loaded_distributions = load_data(os.path.join(selected_dir_path, file_to_use))
-
-    complete_information = loaded_distributions[FileType.COMPLETE.value]
     min_start_time = complete_information.get('global_min_start_time')
     max_end_time = complete_information.get('global_max_end_time')
+
+    if not min_start_time or not max_end_time:
+        logger.error("Global start and end times are missing.")
+        return
 
     instances = complete_information['instances'].values()
     instances_sorted = sort_instances_by_end_time(instances)
@@ -115,14 +128,7 @@ def main():
     cumulative_counts = list(range(1, len(completion_times) + 1))
     relative_times_hours = convert_to_relative_times_hours(completion_times, min_start_time)
 
-    if file_to_use == "filtered_distributions.pkl":
-        plot_cumulative_completions(relative_times_hours, cumulative_counts, max_end_time, min_start_time,
-                                    selected_dir_path)
-
-    elif file_to_use == "filtered_distributions_with_filled_complete_bucket.pkl":
-        plot_cumulative_completions(relative_times_hours, cumulative_counts, max_end_time, min_start_time,
-                                    selected_dir_path,
-                                    filename="cumulative_completions_with_filled_complete_bucket.png")
+    plot_cumulative_completions(relative_times_hours, cumulative_counts, max_end_time, min_start_time, selected_dir_path)
 
 
 if __name__ == "__main__":

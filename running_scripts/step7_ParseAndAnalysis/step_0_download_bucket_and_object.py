@@ -1,11 +1,12 @@
+""" Download all contents of an S3 bucket to a local folder. """
 import configparser
 import os
 from pathlib import Path
-
 import boto3
 
 
 def find_config_file(filename='conf.ini'):
+    """ Find the configuration file in the parent directories of the current file. """
     current_dir = Path(__file__).resolve().parent
     while current_dir != current_dir.parent:
         config_file = current_dir / filename
@@ -25,7 +26,6 @@ config.read(config_path)
 # Fetch configurations
 complete_bucket_name = config.get('settings', 'complete_s3_bucket_name')
 interrupt_s3_bucket_name = config.get('settings', 'interrupt_s3_bucket_name')
-# ... other config fetches here ...
 
 # Display fetched bucket names
 print(f"complete_bucket_name: {complete_bucket_name}")
@@ -33,17 +33,26 @@ print(f"interrupt_bucket_name: {interrupt_s3_bucket_name}")
 
 
 class S3Downloader:
+    """
+    Class to download all contents of an S3 bucket to a local folder.
+    """
+
     def __init__(self, aws_region):
         self.s3_client = boto3.client('s3', region_name=aws_region)
 
-    def download_bucket(self, bucket_name, local_folder_suffix):
+    def download_bucket(self, bucket_name):
         """
-        Download all contents of an S3 bucket to a folder in the current directory named after the bucket.
+        Download all contents of an S3 bucket to a folder in the 'data' directory named after the bucket.
 
         :param bucket_name: str, Name of the S3 bucket.
-        :param local_folder_suffix: str, Suffix to append to the local folder name.
         """
-        local_folder = os.path.join(os.getcwd(), f"{bucket_name}_{local_folder_suffix}")
+        # Ensure the 'data' folder exists
+        data_folder = os.path.join(os.getcwd(), 'data')
+        if not os.path.exists(data_folder):
+            os.makedirs(data_folder)
+
+        # Set the local folder path within the 'data' folder
+        local_folder = os.path.join(data_folder, bucket_name)
 
         if not os.path.exists(local_folder):
             os.makedirs(local_folder)
@@ -68,14 +77,11 @@ class S3Downloader:
 
 
 # Usage
-aws_region = 'us-east-1'  # e.g., 'us-east-1'
+aws_region = 'us-east-1'  # If you made bucket in a different region, change this
 
 # Initialize downloader
 downloader = S3Downloader(aws_region)
 
-# Prompt for a suffix to append to the local folder name
-local_folder_suffix = input("Please provide a suffix for the local folder: ")
-
 # Download bucket contents
-downloader.download_bucket(complete_bucket_name, local_folder_suffix)
-downloader.download_bucket(interrupt_s3_bucket_name, local_folder_suffix)
+downloader.download_bucket(complete_bucket_name)
+downloader.download_bucket(interrupt_s3_bucket_name)
