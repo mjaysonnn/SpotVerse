@@ -83,6 +83,30 @@ Here's the updated section with the header "Setting Preferred Regions":
        ```
    - During the execution of these steps, you may be prompted for additional inputs or confirmations. Follow the prompts as instructed, and the scripts will handle the rest.
 
+### 3. **Parsing the Output**:
+
+**Instructions**:
+
+1. **Fetching S3 Data**:
+   - The following scripts will retrieve data from your S3 bucket, including both completed and interrupted instances.
+2. **Data Parsing and Analysis**:
+   - Using AWS API, The scripts will then parse the fetched data, extracting details on instance types, start and end times, associated costs, and any interruptions that occurred.
+3. **Calculating Total Cost and Run Time**:
+   - Finally, the scripts will calculate the total cost and total run time of these instances, providing a detailed analysis of your cloud resource usage.
+
+```bash
+cd step7_ParseAndAnalysis || exit
+
+# Execute the Python scripts in the specified order
+python3 step_0_download_bucket_and_object.py
+python3 step_1_parse_data_and_save_all_info.py
+python3 step_2_load_pickle_and_save_spot_price_history.py
+python3 step_3_load_timestamp_and_get_total_cost.py
+python3 step_4_instance_completion_analysis.py
+python3 step_5_instance_interruption_analysis.py
+```
+
+
 ### Cleanup
 
 1. **Deleting All Resources**:
