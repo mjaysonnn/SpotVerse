@@ -6,6 +6,7 @@ import os
 import sys
 import time
 from typing import List
+
 import boto3
 import botocore
 from boto3.dynamodb.conditions import Attr
@@ -808,10 +809,6 @@ def evaluate_regions_for_spot_instances(preferred_region_list, region_for_sps, r
     sps_scores = fetch_all_sps_scores(region_for_sps)
     interruption_scores = fetch_all_interruption_free_scores(region_for_interruption)
 
-    # Split the first item in preferred_region_list if it contains multiple regions concatenated together
-    if len(preferred_region_list) == 1 and ' ' in preferred_region_list[0]:
-        preferred_region_list = preferred_region_list[0].split()
-
     for region in preferred_region_list:
         # Access the scores for each region separately
         print(f"Evaluating region: {region}")
@@ -839,9 +836,6 @@ def evaluate_regions_for_spot_instances(preferred_region_list, region_for_sps, r
 
     # Return only the region names from the sorted list
     return [region for region, score in suitable_regions]
-
-
-
 
 
 # ============================================================ Main ===================================================
@@ -907,10 +901,6 @@ def main():
     # empty_buckets()
     # update_spot_price_table()
 
-    # Assuming preferred_regions and available_regions are defined earlier in the code
-
-    # If preferred_regions is None, use available_regions
-
     # Check if preferred_regions is actually a list containing 'None' or is NoneType
     if preferred_regions is None or preferred_regions == ['None']:
         suitable_regions = evaluate_regions_for_spot_instances(available_regions, Region_DynamoDBForSpotPlacementScore,
@@ -921,10 +911,10 @@ def main():
                                                                Region_DynamoDBForStabilityScore)
         print(f"Suitable regions from preferred regions: {suitable_regions}")
 
-    exit()
-    response_dict: dict = fetch_spot_price_data(suitable_regions)
 
-    launch_all_spot_instances(response_dict)
+    # response_dict: dict = fetch_spot_price_data(suitable_regions)
+
+    # launch_all_spot_instances(response_dict)
 
 
 print("Process completed.")
