@@ -32,16 +32,6 @@
    - You must specify the key pair name in the `conf.ini` file.
    - Typically, the key pair is located at `~/.ssh/your-key-pair.pem`.
 
-### Configuration
-
-Here's how you can update the section to reflect the behavior when `regions_to_use` is set to `None`, and how to change the header based on whether preferred regions are provided:
-
----
-
-Here's the updated section with the header "Setting Preferred Regions":
-
----
-
 ### 1. **Setting Preferred Regions**:
    - Define the regions to use in the `conf.ini` file. You can specify multiple regions, a single region, or set it to `None`.
    - Example configuration for `conf.ini`:
