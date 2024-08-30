@@ -1,6 +1,3 @@
-"""
-This script parses the data and saves all the information in a pickle file.
-"""
 import configparser
 import logging
 import os
@@ -37,25 +34,19 @@ config_path = str(conf_file_path)
 config.read(config_path)
 
 # Fetch configurations
-
 INSTANCE_TYPE = config.get('settings', 'instance_type')
 print(f"instance_type: {INSTANCE_TYPE}")
 
 
 def extract_content(text: str, pattern: str) -> str:
-    """
-    Extract the content from the text using the pattern.
-    """
+    """Extract the content from the text using the pattern."""
     match = re.search(pattern, text)
     return match[1] if match else None
 
 
 def convert_to_datetime(datetime_str: str) -> Optional[datetime]:
-    """
-    Convert the datetime string to datetime object.
-    """
+    """Convert the datetime string to datetime object."""
     try:
-        # If the datetime string has a 'Z', replace it with '+00:00' to make it offset-aware
         return datetime.fromisoformat(datetime_str.replace('Z', '+00:00')) if datetime_str else None
     except Exception as e:
         logging.error(f"Error converting datetime: {datetime_str}, Error: {str(e)}")
@@ -63,11 +54,10 @@ def convert_to_datetime(datetime_str: str) -> Optional[datetime]:
 
 
 def parse_file_content_complete(file_path: str) -> tuple:
-    """
-    Parse the file content and return the instance ID, availability zone, region, start time, end time, and cost.
-    """
+    """Parse the file content for complete instances."""
     with open(file_path, 'r') as file:
         content = file.read()
+        logger.debug(f"Parsing file content for complete: {content}")
 
         instance_id = extract_content(content, r'Instance ID: (\S+)')
         availability_zone = extract_content(content, r'Availability Zone: (\w+-\w+-\d\w)')
@@ -77,15 +67,15 @@ def parse_file_content_complete(file_path: str) -> tuple:
         end_time = convert_to_datetime(extract_content(content, r'Current Time: (.+)'))
         cost = float(extract_content(content, r'Current Spot Price: (.+)'))
 
+        logger.debug(f"Extracted complete instance details: ID={instance_id}, AZ={availability_zone}, Region={region}, Start={start_time}, End={end_time}, Cost={cost}")
         return instance_id, availability_zone, region, start_time, end_time, cost
 
 
 def parse_file_content_interruption(file_path: str) -> tuple:
-    """
-    Parse the file content and return the instance ID, availability zone, region, start time, end time, and cost.
-    """
+    """Parse the file content for interruption instances."""
     with open(file_path, 'r') as file:
         content = file.read()
+        logger.debug(f"Parsing file content for interruption: {content}")
 
         instance_id = extract_content(content, r'Instance ID: (\S+)')
         availability_zone = extract_content(content, r'Availability Zone: (\w+-\w+-\d\w)')
@@ -97,8 +87,9 @@ def parse_file_content_interruption(file_path: str) -> tuple:
         cost_str = extract_content(content, r'Current Spot Price: (.+)')
         cost = float(cost_str) if cost_str is not None else 0.0
         if cost == 0.0:
-            logger.debug("Cost was None, setting to 0.0")
+            logger.debug("Cost was None or invalid, setting to 0.0")
 
+        logger.debug(f"Extracted interruption instance details: ID={instance_id}, AZ={availability_zone}, Region={region}, Start={start_time}, End={end_time}, Cost={cost}")
         return instance_id, availability_zone, region, start_time, end_time, cost
 
 
@@ -305,10 +296,7 @@ def aggregate_costs(instances):
 
 
 def analyze_and_add_distribution(full_path, file_type, all_distributions_info):
-    """
-    Analyze the directory and add the distribution to the dictionary of all distributions.
-    :return:
-    """
+    """Analyze the directory and add the distribution to the dictionary of all distributions."""
     logging.info("=========================================")
     logging.info(f"Analyzing {file_type}")
     logging.info(f"Directory is {full_path}...")

@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# This is for updating the Spot Interruption Frequency in DynamoDB.
-
-source /Users/mj/opt/anaconda3/etc/profile.d/conda.sh
-conda activate MultiCloudGalaxy
 
 # Function to check the stack status
 check_stack_status() {

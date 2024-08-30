@@ -526,14 +526,43 @@ def print_info(details: dict):
 
 def update_spot_price_table():
     # Update DynamoDB table
-    auto_color_print("Updating DynamoDB table...")
+    auto_color_print("Updating Spot Price table...")
     lambda_client = boto3.client('lambda', region_name=Region_DynamodbForSpotPrice)
     function_name = "lambda_for_updating_spot_price"
     payload = {"key": "value"}  # Okay to send an empty payload
     response = lambda_client.invoke(FunctionName=function_name, InvocationType='RequestResponse',
                                     Payload=bytes(json.dumps(payload), encoding='utf-8'))
     response_payload = json.loads(response['Payload'].read())
-    print("Updated DynamoDB Table Response: ", response_payload)
+    print("Updated Spot Price Table : ", response_payload)
+    print("Give some time to update DynamoDB table")
+    time.sleep(5)
+
+
+def update_interruption_table():
+    # Update Spot Placement Score DynamoDB table
+    # This is to prevent the Cloudwatch not being able to trigger the lambda function. Remove this if not needed
+    auto_color_print("Updating DynamoDB table...")
+    lambda_client = boto3.client('lambda', region_name=Region_DynamoDBForStabilityScore)
+    function_name = "lambda_spot_interruption_ratio_inserter"
+    payload = {"key": "value"}  # Okay to send an empty payload
+    response = lambda_client.invoke(FunctionName=function_name, InvocationType='RequestResponse',
+                                    Payload=bytes(json.dumps(payload), encoding='utf-8'))
+    response_payload = json.loads(response['Payload'].read())
+    print("Updated SPS Table: ", response_payload)
+    print("Give some time to update DynamoDB table")
+    time.sleep(5)
+
+def update_spot_sps_table():
+    # Update Spot Placement Score DynamoDB table
+    # This is to prevent the Cloudwatch not being able to trigger the lambda function. Remove this if not needed
+    auto_color_print("Updating SPS table...")
+    lambda_client = boto3.client('lambda', region_name=Region_DynamoDBForSpotPlacementScore)
+    function_name = "lambda_spot_placement_score_inserter"
+    payload = {"key": "value"}  # Okay to send an empty payload
+    response = lambda_client.invoke(FunctionName=function_name, InvocationType='RequestResponse',
+                                    Payload=bytes(json.dumps(payload), encoding='utf-8'))
+    response_payload = json.loads(response['Payload'].read())
+    print("Updated SPS Table: ", response_payload)
     print("Give some time to update DynamoDB table")
     time.sleep(5)
 
@@ -897,9 +926,10 @@ def main():
     Main function.
     """
 
-    # cancel_spot_requests()
-    # empty_buckets()
-    # update_spot_price_table()
+    cancel_spot_requests()
+    empty_buckets()
+    update_spot_price_table()
+    update_spot_sps_table()
 
     # Check if preferred_regions is actually a list containing 'None' or is NoneType
     if preferred_regions is None or preferred_regions == ['None']:
@@ -911,10 +941,9 @@ def main():
                                                                Region_DynamoDBForStabilityScore)
         print(f"Suitable regions from preferred regions: {suitable_regions}")
 
+    response_dict: dict = fetch_spot_price_data(suitable_regions)
 
-    # response_dict: dict = fetch_spot_price_data(suitable_regions)
-
-    # launch_all_spot_instances(response_dict)
+    launch_all_spot_instances(response_dict)
 
 
 print("Process completed.")

@@ -1,6 +1,6 @@
 """
-This script is responsible for loading the original distributions, removing old interruptions, updating times, zones,
-and saving the filtered distributions. It also retrieves spot price history for each availability zone \
+This script is responsible for loading the original distributions, updating times, zones,
+and saving the filtered distributions. It also retrieves spot price history for each availability zone
 and stores it in a JSON file.
 """
 import configparser
@@ -10,7 +10,7 @@ import logging
 import os
 import pickle
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import boto3
@@ -187,28 +187,6 @@ def store_spot_price_history(spot_price_history, filename, subdirectory_path):
         logger.error(f"Failed to store data: {str(e)}")
 
 
-def remove_old_interruptions(loaded_distributions, hours_limit=10):
-    global_max_end_time = loaded_distributions['complete']['global_max_end_time']
-    time_limit = global_max_end_time - timedelta(hours=hours_limit)
-
-    logger.debug(f"Complete global_max_end_time: {global_max_end_time}")
-    logger.debug(f"Time limit: {time_limit}")
-
-    to_remove = [
-        instance_id
-        for instance_id, instance_data in loaded_distributions['interruption']['instances'].items()
-        if instance_data.end_time >= time_limit
-    ]
-
-    logger.info("Removing number of instances: %s", len(to_remove))
-
-    for instance_id in to_remove:
-        del loaded_distributions['interruption']['instances'][instance_id]
-        logger.debug(f"Removed instance {instance_id} due to old end_time.")
-
-    return loaded_distributions
-
-
 def update_times_zones_and_regions(loaded_distributions):
     for key in ['complete', 'interruption']:
         instances = loaded_distributions[key]['instances']
@@ -302,12 +280,8 @@ def main():
 
     file_name = "filtered_distributions.pkl"
 
-    logger.info("Removing old interruption instances...")
-    old_interruption_removed_distributions = remove_old_interruptions(loaded_distributions)
-    logger.debug(old_interruption_removed_distributions)
-
     logger.info("Updating times, zones, and regions...")
-    filtered_distributions = update_times_zones_and_regions(old_interruption_removed_distributions)
+    filtered_distributions = update_times_zones_and_regions(loaded_distributions)
     logger.debug(filtered_distributions)
 
     logger.debug("Updated distributions:")
