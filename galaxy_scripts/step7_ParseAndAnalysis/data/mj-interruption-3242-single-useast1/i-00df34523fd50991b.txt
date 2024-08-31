@@ -1,7 +1,0 @@
-Instance ID: i-00df34523fd50991b
-Region: us-east-1
-Availability Zone: us-east-1f
-Instance Type: m5.xlarge
-Instance Launch Time: 2024-08-30T17:54:01Z
-Spot Interruption Warning Time: 2024-08-30T17:55:53Z
-Current Spot Price: 0.065100
