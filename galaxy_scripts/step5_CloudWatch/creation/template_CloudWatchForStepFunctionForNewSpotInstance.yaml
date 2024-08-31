@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template to set up permissions and event rules for triggering a Step Function when there
+ is a Spot Instance interruption notice.'
+
+Parameters:
+  Region:
+    Description: "The region for the resources"
+    Type: "String"
+    Default: "us-east-1"
+  StateMachineArn:
+    Description: "ARN of the State Machine to be invoked"
+    Type: "String"
+
+Resources:
+
+  StepFunctionInvokePermission:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: "events.amazonaws.com"
+          Action: "sts:AssumeRole"
+      Policies:
+      - PolicyName: InvokeStepFunctionPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: "states:StartExecution"
+            Resource: !Ref StateMachineArn
+
+  SpotInterruptionEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Event Rule to start a Step Function execution upon Spot Instance interruption notice."
+      EventPattern:
+        source:
+          - "aws.ec2"
+        detail-type:
+          - "EC2 Spot Instance Interruption Warning"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref StateMachineArn
+          RoleArn: !GetAtt StepFunctionInvokePermission.Arn
+          Id: "SpotInterruptionTarget"

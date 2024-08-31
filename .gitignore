@@ -1,4 +1,4 @@
 .idea
 /galaxy_scripts/ami_ids.txt
 step7_ParseAndAnalysis/data
-**/**/credentials.txt
+/galaxy_scripts/step7_ParseAndAnalysis/data
