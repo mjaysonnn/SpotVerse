@@ -1,6 +1,6 @@
 import configparser
-import boto3
 from pathlib import Path
+import boto3
 
 # This script is designed to copy an Amazon Machine Image (AMI) from a specified source region
 # to multiple target regions. After copying, it saves the AMI IDs for each region in a file
@@ -38,20 +38,19 @@ def copy_ami_to_regions(source_ami_id, source_region, target_regions):
 
 # ====================== MAIN =================
 
-# Example usage
-# Replace <source_region> with your source region (e.g., "us-east-1")
-source_region = "<source_region>"
-
-# Replace <source_ami_id> with the ID of the AMI you wish to copy
-source_ami_id = "<source_ami_id>"
-
 # The script assumes the `conf.ini` file is in the same directory as this script.
-config_path = Path(__file__).parent / 'conf.ini'
+config_path = Path(__file__).resolve().parent.parent / 'conf.ini'
 if not config_path.is_file():
     raise FileNotFoundError("Config file not found. Please ensure conf.ini is in the same directory as the script.")
 
 config = configparser.ConfigParser()
 config.read(str(config_path))
+
+# Set source region
+source_region = "us-east-1" # Replace this with your actual source region
+
+# Manually specify the source AMI ID
+source_ami_id = "ami-020ea6568132b81a4"  # Replace this with your actual AMI ID
 
 # Extract the 'regions' entry from the 'settings' section
 regions_string = config.get('settings', 'regions_to_use')
@@ -62,17 +61,22 @@ target_regions = [region.strip() for region in regions_string.split(',')]
 # Remove the source region from the target regions list if it's included
 target_regions = [region for region in target_regions if region != source_region]
 
-print(f"Copying AMI from {source_region} to regions: {target_regions}")
+print(f"Copying AMI {source_ami_id} from {source_region} to regions: {target_regions}")
 
 # Copy the AMI to the target regions
 copied_amis = copy_ami_to_regions(source_ami_id, source_region, target_regions)
 print("Copied AMI IDs:", copied_amis)
 
-# Save copied AMI IDs to a file in the same directory
+# Save the source AMI ID and copied AMI IDs to a file in the same directory
 copied_ami_ids_file = Path(__file__).parent / 'ami_ids.txt'
 with open(copied_ami_ids_file, 'w') as f:
+    # Write the source AMI ID
+    f.write(f"{source_region} {source_ami_id}\n")
+
+    # Write the copied AMI IDs
     for region, ami_id in copied_amis.items():
         f.write(f"{region} {ami_id}\n")
 
 # This `ami_ids.txt` file will be used later for deploying Lambda functions and EC2 instances.
-print(f"Copied AMI IDs have been saved to '{copied_ami_ids_file}' in the same directory as the script")
+print(f"Source AMI ID and copied AMI IDs have been saved to '{copied_ami_ids_file}' in the same directory as the script")
+print(f"Give some time for the AMIs to be fully copied before proceeding with the next steps.")

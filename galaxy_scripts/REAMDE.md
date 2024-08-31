@@ -7,7 +7,8 @@ Then we can
 1. run Galaxy workload by using reboot script which is in scripts_for_running_galaxy.md.
 2. Or use the ami_ids.txt file to use in running_scripts directory to run the Galaxy workflow where we can use user-data to run the Galaxy workflow.
 
+need to add ami-id.txt in conf.ini file. (here I assume the region is us-east-1)
 
-
+Give time for ami to be available, check the status of the ami on aws console.
 
 ```bash
