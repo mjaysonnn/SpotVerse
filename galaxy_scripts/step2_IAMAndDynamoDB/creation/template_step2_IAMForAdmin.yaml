@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CloudFormation template for creating an IAM Role with limited access for Lambda
+
+Resources:
+  LambdaWithAdminAccessRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: "LambdaWithAdminAccess"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+
+Outputs:
+  LambdaRoleArn:
+    Description: ARN of the Lambda IAM Role
+    Value: !GetAtt LambdaWithAdminAccessRole.Arn
