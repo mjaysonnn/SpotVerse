@@ -231,21 +231,26 @@ def launch_spot_instance(ec2_client, spot_price, ami_id, inst_type, key_name, se
 
                 # Initializing the log
                 echo "Starting script" >/var/log/user-data.log                
-
+                
                 # Appending all standard output and error messages to the log file
                 exec > >(tee -a /var/log/user-data.log) 2>&1                                
-
+                
                 # Set the HOME environment variable
                 export HOME=/home/ec2-user
-
-                # This is where you can add your custom user data script
-                git config --global --add safe.directory /home/ec2-user/galaxy
-                ./home/ec2-user/galaxy/run.sh > /dev/null 2>&1 &
-                echo "Running the Galaxy server in the background..."
-
+                
+                # Custom log file for the Galaxy server
+                GALAXY_LOG="/var/log/galaxy-server.log"
+                
+                # Ensure the log directory exists
+                mkdir -p /var/log
+                
+                # Run the Galaxy server, redirecting its output to the custom log file
+                sh $HOME/galaxy/run.sh > $GALAXY_LOG 2>&1 &
+                echo "Running the Galaxy server in the background... Output is being logged to $GALAXY_LOG"
+                
                 echo "Sleeping for 5 minutes to allow the server to start..."
                 sleep 300
-
+                
                 cd /home/ec2-user/ngs_analysis || exit
                 ./run_all_batches.sh
 
@@ -962,22 +967,20 @@ def main():
     Main function.
     """
 
-    # cancel_spot_requests()
-    # empty_buckets()
+    cancel_spot_requests()
+    empty_buckets()
 
-    # run_parallel_updates()
+    run_parallel_updates()
 
-    # Check if preferred_regions is actually a list containing 'None' or is NoneType
-    # if preferred_regions is None or preferred_regions == ['None']:
-    #     suitable_regions = evaluate_regions_for_spot_instances(available_regions, Region_DynamoDBForSpotPlacementScore,
-    #                                                            Region_DynamoDBForStabilityScore)
-    #     print(f"No preferred regions specified. Using available regions: {suitable_regions}")
-    # else:
-    #     suitable_regions = evaluate_regions_for_spot_instances(preferred_regions, Region_DynamoDBForSpotPlacementScore,
-    #                                                            Region_DynamoDBForStabilityScore)
-    #     print(f"Suitable regions from preferred regions: {suitable_regions}")
+    if preferred_regions is None or preferred_regions == ['None']:
+        suitable_regions = evaluate_regions_for_spot_instances(available_regions, Region_DynamoDBForSpotPlacementScore,
+                                                               Region_DynamoDBForStabilityScore)
+        print(f"No preferred regions specified. Using available regions: {suitable_regions}")
+    else:
+        suitable_regions = evaluate_regions_for_spot_instances(preferred_regions, Region_DynamoDBForSpotPlacementScore,
+                                                               Region_DynamoDBForStabilityScore)
+        print(f"Suitable regions from preferred regions: {suitable_regions}")
 
-    suitable_regions = preferred_regions
     response_dict: dict = fetch_spot_price_data(suitable_regions)
 
     launch_all_spot_instances(response_dict)

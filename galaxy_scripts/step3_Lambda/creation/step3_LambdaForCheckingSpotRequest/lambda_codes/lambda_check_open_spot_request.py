@@ -76,28 +76,30 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                 export AWS_ACCESS_KEY_ID="{aws_credentials['AWS_ACCESS_KEY_ID']}"
                 export AWS_SECRET_ACCESS_KEY="{aws_credentials['AWS_SECRET_ACCESS_KEY']}"
 
-                # Initializing the log file to capture the output of this script
-                echo "Starting script" >/var/log/user-data.log
 
-                # Redirecting all stdout and stderr to the log file for debugging purposes
-                exec > >(tee -a /var/log/user-data.log) 2>&1
-
-                # Placeholder sleep command for testing purposes
-                # You can remove or replace this line with actual script logic in production
+                # Initializing the log
+                echo "Starting script" >/var/log/user-data.log                
+                
+                # Appending all standard output and error messages to the log file
+                exec > >(tee -a /var/log/user-data.log) 2>&1                                
                 
                 # Set the HOME environment variable
                 export HOME=/home/ec2-user
-                                
-                # This is where you can add your custom user data script
-                git config --global --add safe.directory /home/ec2-user/galaxy
-                sh $HOME/galaxy/run.sh > /dev/null 2>&1 &
-                echo "Running the Galaxy server in the background..."
+                
+                # Custom log file for the Galaxy server
+                GALAXY_LOG="/var/log/galaxy-server.log"
+                
+                # Ensure the log directory exists
+                mkdir -p /var/log
+                
+                # Run the Galaxy server, redirecting its output to the custom log file
+                sh $HOME/galaxy/run.sh > $GALAXY_LOG 2>&1 &
+                echo "Running the Galaxy server in the background... Output is being logged to $GALAXY_LOG"
                 
                 echo "Sleeping for 5 minutes to allow the server to start..."
                 sleep 300
                 
-                export HOME=/home/ec2-user
-                cd $HOME/ngs_analysis || exit
+                cd /home/ec2-user/ngs_analysis || exit
                 ./run_all_batches.sh
 
                 # Retrieve the instance ID using the ec2-metadata command

@@ -1,0 +1,5 @@
+Instance ID: i-0af72f5cb695dd313
+Availability Zone: us-west-2d
+Instance Launch Time: 2024-08-30T17:59:03+00:00
+Current Time: 2024-08-30T18:09:23+00:00
+Current Spot Price: 0.062300
