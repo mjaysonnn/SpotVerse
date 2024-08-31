@@ -234,10 +234,20 @@ def launch_spot_instance(ec2_client, spot_price, ami_id, inst_type, key_name, se
 
                 # Appending all standard output and error messages to the log file
                 exec > >(tee -a /var/log/user-data.log) 2>&1                                
-                
+
+                # Set the HOME environment variable
+                export HOME=/home/ec2-user
+
                 # This is where you can add your custom user data script
-                echo "Sleeping for {sleep_time} seconds..."
-                sleep {sleep_time}
+                git config --global --add safe.directory /home/ec2-user/galaxy
+                ./home/ec2-user/galaxy/run.sh > /dev/null 2>&1 &
+                echo "Running the Galaxy server in the background..."
+
+                echo "Sleeping for 5 minutes to allow the server to start..."
+                sleep 300
+
+                cd /home/ec2-user/ngs_analysis || exit
+                ./run_all_batches.sh
 
                 echo "Retrieving the instance ID using ec2-metadata..."
                 INSTANCE_ID=$(ec2-metadata -i | cut -d " " -f 2)
@@ -870,6 +880,29 @@ def evaluate_regions_for_spot_instances(preferred_region_list, region_for_sps, r
     return [region for region, score in suitable_regions]
 
 
+def run_parallel_updates():
+    """
+    Run multiple update functions in parallel using a ThreadPoolExecutor.
+
+    This function will execute `update_spot_price_table`, `update_spot_sps_table`,
+    and `update_interruption_table` concurrently. It will also handle any exceptions
+    that occur during the execution of these functions.
+    """
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(update_spot_price_table),
+            executor.submit(update_spot_sps_table),
+            executor.submit(update_interruption_table)
+        ]
+
+        # Wait for all threads to complete
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                future.result()  # This will raise an exception if the thread raised one
+            except Exception as e:
+                print(f"An error occurred: {e}")
+
+
 # ============================================================ Main ===================================================
 
 # Initialize the parser and read the conf.ini file
@@ -919,7 +952,7 @@ s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 init()  # initialize colorama, it's for colored print
 auto_color_print("Copying AWS credentials...")  # Get AWS credentials from the file
-os.system("python3 copy_aws_credentials.py")
+os.system("python3 step0_CopyAWSCredentials.py")
 aws_credentials = get_aws_credentials_from_file()
 print("AWS credentials copied.")
 
@@ -929,29 +962,22 @@ def main():
     Main function.
     """
 
-    cancel_spot_requests()
-    empty_buckets()
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(update_spot_price_table), executor.submit(update_spot_sps_table),
-                   executor.submit(update_interruption_table)]
+    # cancel_spot_requests()
+    # empty_buckets()
 
-        # Wait for all threads to complete
-        for future in concurrent.futures.as_completed(futures):
-            try:
-                future.result()  # This will raise an exception if the thread raised one
-            except Exception as e:
-                print(f"An error occurred: {e}")
+    # run_parallel_updates()
 
     # Check if preferred_regions is actually a list containing 'None' or is NoneType
-    if preferred_regions is None or preferred_regions == ['None']:
-        suitable_regions = evaluate_regions_for_spot_instances(available_regions, Region_DynamoDBForSpotPlacementScore,
-                                                               Region_DynamoDBForStabilityScore)
-        print(f"No preferred regions specified. Using available regions: {suitable_regions}")
-    else:
-        suitable_regions = evaluate_regions_for_spot_instances(preferred_regions, Region_DynamoDBForSpotPlacementScore,
-                                                               Region_DynamoDBForStabilityScore)
-        print(f"Suitable regions from preferred regions: {suitable_regions}")
+    # if preferred_regions is None or preferred_regions == ['None']:
+    #     suitable_regions = evaluate_regions_for_spot_instances(available_regions, Region_DynamoDBForSpotPlacementScore,
+    #                                                            Region_DynamoDBForStabilityScore)
+    #     print(f"No preferred regions specified. Using available regions: {suitable_regions}")
+    # else:
+    #     suitable_regions = evaluate_regions_for_spot_instances(preferred_regions, Region_DynamoDBForSpotPlacementScore,
+    #                                                            Region_DynamoDBForStabilityScore)
+    #     print(f"Suitable regions from preferred regions: {suitable_regions}")
 
+    suitable_regions = preferred_regions
     response_dict: dict = fetch_spot_price_data(suitable_regions)
 
     launch_all_spot_instances(response_dict)

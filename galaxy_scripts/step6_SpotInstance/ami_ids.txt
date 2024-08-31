@@ -1,2 +1,1 @@
-us-east-1 ami-066784287e358dad1
-us-west-2 ami-02d3770deb1c746ec
+us-east-1 ami-08fd806202c123726
