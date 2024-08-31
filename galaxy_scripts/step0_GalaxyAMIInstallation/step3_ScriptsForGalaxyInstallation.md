@@ -71,7 +71,7 @@ sh run.sh
 #source venv/bin/activate
 
 echo "Installing Data Analysis Tools"
-git clone https://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@github.com/mjaysonnn/ngs_analysis.git 
+git clone https://github.com/mjaysonnn/ngs_analysis.git
 
 echo "Downloading Data"
 echo "Downloading SRA-Toolkit & SRR25195166"
