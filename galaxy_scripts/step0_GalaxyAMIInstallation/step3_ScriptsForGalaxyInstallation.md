@@ -26,8 +26,8 @@
 
 # Exporting AWS Credentials
 # Use credentials.txt generated from step0_CopyAWSCredentials.py
-export AWS_ACCESS_KEY_ID="AKIAYG7SHZZKQXDR5EWF"
-export AWS_SECRET_ACCESS_KEY="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"
+export AWS_ACCESS_KEY_ID="<>"
+export AWS_SECRET_ACCESS_KEY="<>"
 
 # Update and upgrade the system packages
 sudo yum update -y
