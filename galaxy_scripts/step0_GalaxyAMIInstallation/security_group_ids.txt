@@ -1,0 +1,2 @@
+us-east-1 sg-0b32ce0c97f328c1d
+us-west-2 sg-00a61ba4a2a2814e1
