@@ -244,6 +244,8 @@ def launch_spot_instance(ec2_client, spot_price, ami_id, inst_type, key_name, se
                 # Ensure the log directory exists
                 mkdir -p /var/log
                 
+                git config --global --add safe.directory /home/ec2-user/galaxy
+                
                 # Run the Galaxy server, redirecting its output to the custom log file
                 sh $HOME/galaxy/run.sh > $GALAXY_LOG 2>&1 &
                 echo "Running the Galaxy server in the background... Output is being logged to $GALAXY_LOG"

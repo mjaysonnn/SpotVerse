@@ -86,6 +86,8 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                 # Set the HOME environment variable
                 export HOME=/home/ec2-user
                 
+                git config --global --add safe.directory /home/ec2-user/galaxy
+                
                 # Custom log file for the Galaxy server
                 GALAXY_LOG="/var/log/galaxy-server.log"
                 
