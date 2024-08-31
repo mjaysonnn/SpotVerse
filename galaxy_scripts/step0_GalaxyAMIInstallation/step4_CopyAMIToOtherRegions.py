@@ -50,7 +50,7 @@ config.read(str(config_path))
 source_region = "us-east-1" # Replace this with your actual source region
 
 # Manually specify the source AMI ID
-source_ami_id = "ami-020ea6568132b81a4"  # Replace this with your actual AMI ID
+source_ami_id = "ami-08fd806202c123726"  # Replace this with your actual AMI ID
 
 # Extract the 'regions' entry from the 'settings' section
 regions_string = config.get('settings', 'regions_to_use')

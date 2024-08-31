@@ -169,8 +169,20 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
 
                 # Placeholder sleep command for testing purposes
                 # You can remove or replace this line with actual script logic in production
-                echo "Sleeping for {sleep_time} seconds..."
-                sleep {sleep_time}
+                
+                # Set the HOME environment variable
+                export HOME=/home/ec2-user
+                                
+                # This is where you can add your custom user data script
+                git config --global --add safe.directory /home/ec2-user/galaxy
+                ./home/ec2-user/galaxy/run.sh > /dev/null 2>&1 &
+                echo "Running the Galaxy server in the background..."
+                
+                echo "Sleeping for 5 minutes to allow the server to start..."
+                sleep 300
+                
+                cd /home/ec2-user/ngs_analysis || exit
+                ./run_all_batches.sh
 
                 # Retrieve the instance ID using the ec2-metadata command
                 echo "Retrieving the instance ID using ec2-metadata..."
