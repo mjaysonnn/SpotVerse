@@ -112,9 +112,9 @@ def display_and_confirm_access_key():
 
 def generate_bucket_names(experiment_default_region):
     prefixes = {
-        'interrupt': "mj-interruption",
-        'complete': "mj-complete",
-        'lambda_deployment': "mj-lambda-codes"
+        'interrupt': "xx-interruption",
+        'complete': "xx-complete",
+        'lambda_deployment': "xx-lambda-codes"
     }
     return {key: generate_bucket_name(prefix, experiment_default_region) for key, prefix in prefixes.items()}
 

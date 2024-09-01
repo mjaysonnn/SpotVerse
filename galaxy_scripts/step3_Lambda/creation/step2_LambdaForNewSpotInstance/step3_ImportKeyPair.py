@@ -46,9 +46,9 @@ def import_key_pair_to_all_regions(key_name, public_key_material):
                 print(f"Error importing key '{key_name}' to {region}: {e}")
 
 
-key_name = "mjay_m1"
-print(f"Reading public key material from /Users/mj/.ssh/{key_name}.pub...")
-with open(f"/Users/mj/.ssh/{key_name}.pub", "r") as f:
+key_name = "xxay_m1"
+print(f"Reading public key material from /Users/xx/.ssh/{key_name}.pub...")
+with open(f"/Users/xx/.ssh/{key_name}.pub", "r") as f:
     public_key_material = f.read()
 
 print(f"Starting to import key '{key_name}' to the target regions...")
