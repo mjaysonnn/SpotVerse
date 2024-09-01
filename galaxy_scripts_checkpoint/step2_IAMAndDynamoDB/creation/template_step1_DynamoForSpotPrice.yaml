@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  CloudFormation template for creating a DynamoDB table
+
+Resources:
+  DynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: SpotPriceCostTable
+      AttributeDefinitions:
+        - AttributeName: availability_zone
+          AttributeType: S
+      KeySchema:
+        - AttributeName: availability_zone
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 10
+        WriteCapacityUnits: 10
+      Tags:
+        - Key: Name
+          Value: SpotPriceCostTable
+
+Outputs:
+  TableName:
+    Description: Name of the DynamoDB table
+    Value: !Ref DynamoDBTable
+  TableArn:
+    Description: ARN of the DynamoDB table
+    Value: !GetAtt DynamoDBTable.Arn
