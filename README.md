@@ -6,10 +6,13 @@ variety of other workloads as well.
 
 ## Directory Structure
 
-- **galaxy_scripts**: galaxy_scripts: Contains the scripts specifically for deploying the Galaxy framework. This
+- **galaxy_scripts**: Contains the scripts specifically for deploying the Galaxy framework. This
   directory includes a similar step for non-Galaxy workload scripts and additional step0 where we create a
   Galaxy-equipped AMI and install the necessary workflows to run Galaxy applications. To run Galaxy workloads, an AMI
-  pre-configured with Galaxy is required.
+  pre-configured with Galaxy is required. Standard workload starts from scratch when an interruption happens.
+
+- **galaxy_scripts_checkpoint**: Contains the scripts for Galaxy-based checkpointing workload.  It resumes the workload
+  from the last checkpoint when an interruption happens.
 
 ## Installation Guide (On AWS)
 
