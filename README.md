@@ -11,8 +11,10 @@ variety of other workloads as well.
   Galaxy-equipped AMI and install the necessary workflows to run Galaxy applications. To run Galaxy workloads, an AMI
   pre-configured with Galaxy is required. Standard workload starts from scratch when an interruption happens.
 
-- **galaxy_scripts_checkpoint**: Contains the scripts for Galaxy-based checkpointing workload.  It resumes the workload
+- **galaxy_scripts_checkpoint**: Contains the scripts for Galaxy-based checkpointing workload. It resumes the workload
   from the last checkpoint when an interruption happens.
+
+- **current_directory**: Contains the scripts for running non-Galaxy standard workload. The workload starts from scratch when an interruption happens.
 
 ## Installation Guide (On AWS)
 
