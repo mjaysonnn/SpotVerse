@@ -12,8 +12,6 @@ Resources:
           AttributeType: S
         - AttributeName: InstanceId
           AttributeType: S
-        - AttributeName: Status
-          AttributeType: S
       KeySchema:
         - AttributeName: BatchName
           KeyType: HASH  # Partition Key

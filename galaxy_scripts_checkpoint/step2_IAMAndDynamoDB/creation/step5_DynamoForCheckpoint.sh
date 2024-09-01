@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# Single region deployment script for DynamoDB for Spot Placement Score
-# This script is for creating DynamoDB for Storing Spot Placement Score
-
+# Single region deployment script for DynamoDB for storing checkpoints
 
 # Function to get stack status
 get_stack_status() {
@@ -99,28 +97,24 @@ get_config_value() {
     return 1
   fi
 }
-################################################################ ############################################
 
-echo "Starting to deploy the stack for creating IAM (LambdaAdmin) and DynamoDB resources..."
-echo "Since dynamodb is central service, it is deployed in us-east-1 region."
+#########################################################################################################
+
+echo "Starting to deploy the stack for creating DynamoDB table for storing checkpoints..."
 
 # Variables
-FILENAME="template_step4_DynamoForSpotPlacementScore.yaml"
-#STACK_NAME=$(awk -F "=" '/StackName_DynamoForSpotPlacementScore/ {print $2}' ../conf.ini | tr -d ' ')
-STACK_NAME=$(get_config_value "StackName_DynamoForSpotPlacementScore")
-
-# Fetch REGION from ../conf.ini
-#REGION=$(awk -F "=" '/Region_DynamoForSpotPlacementScore/ {print $2}' ../conf.ini | tr -d ' ')
-REGION=$(get_config_value "Region_DynamoForSpotPlacementScore")
+FILENAME="template_step5_DynamoForCheckpoint.yaml"
+STACK_NAME=$(get_config_value "StackName_DynamodbForCheckpoint")
+REGION=$(get_config_value "Region_DynamoForCheckpoint")
 
 # Check if STACK_NAME and REGION were retrieved successfully
 if [ -z "$STACK_NAME" ]; then
-  echo "Error: STACK_NAME not found in ../conf.ini"
+  echo "Error: STACK_NAME not found in conf.ini"
   exit 1
 fi
 
 if [ -z "$REGION" ]; then
-  echo "Error: REGION not found in ../conf.ini"
+  echo "Error: REGION not found in conf.ini"
   exit 1
 fi
 
