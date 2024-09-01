@@ -12,6 +12,8 @@ declare -a step2_scripts=(
     "step2_IAMAndDynamoDB/deletion/step2_IAMForAdmin.sh"
     "step2_IAMAndDynamoDB/deletion/step3_DynamoForSpotInterruptionRatio.sh"
     "step2_IAMAndDynamoDB/deletion/step4_DynamoForSpotPlacementScore.sh"
+    "step2_IAMAndDynamoDB/deletion/step5_DynamoForCheckpoint.sh"
+
 )
 
 declare -a step3_scripts=(

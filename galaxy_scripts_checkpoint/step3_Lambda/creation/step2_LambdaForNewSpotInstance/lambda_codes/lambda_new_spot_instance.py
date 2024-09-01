@@ -186,7 +186,8 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                 sleep 300
                 
                 cd /home/ec2-user/ngs_analysis || exit
-                ./run_all_batches.sh
+                sh check_interruption_notice.sh > /var/log/check_interruption.log 2>&1 &
+                ./run_all_batches_checkpoint.sh
 
                 # Retrieve the instance ID using the ec2-metadata command
                 echo "Retrieving the instance ID using ec2-metadata..."

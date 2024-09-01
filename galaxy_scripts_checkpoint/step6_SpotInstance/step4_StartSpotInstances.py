@@ -229,6 +229,11 @@ def launch_spot_instance(ec2_client, spot_price, ami_id, inst_type, key_name, se
                 export AWS_ACCESS_KEY_ID="{aws_credentials['AWS_ACCESS_KEY_ID']}"
                 export AWS_SECRET_ACCESS_KEY="{aws_credentials['AWS_SECRET_ACCESS_KEY']}"
 
+
+                # Exporting AWS credentials for use in subsequent AWS CLI commands
+                export AWS_ACCESS_KEY_ID="{aws_credentials['AWS_ACCESS_KEY_ID']}"
+                export AWS_SECRET_ACCESS_KEY="{aws_credentials['AWS_SECRET_ACCESS_KEY']}"
+                
                 # Initializing the log
                 echo "Starting script" >/var/log/user-data.log                
                 
@@ -238,13 +243,13 @@ def launch_spot_instance(ec2_client, spot_price, ami_id, inst_type, key_name, se
                 # Set the HOME environment variable
                 export HOME=/home/ec2-user
                 
+                git config --global --add safe.directory /home/ec2-user/galaxy
+                
                 # Custom log file for the Galaxy server
                 GALAXY_LOG="/var/log/galaxy-server.log"
                 
                 # Ensure the log directory exists
                 mkdir -p /var/log
-                
-                git config --global --add safe.directory /home/ec2-user/galaxy
                 
                 # Run the Galaxy server, redirecting its output to the custom log file
                 sh $HOME/galaxy/run.sh > $GALAXY_LOG 2>&1 &
@@ -254,8 +259,9 @@ def launch_spot_instance(ec2_client, spot_price, ami_id, inst_type, key_name, se
                 sleep 300
                 
                 cd /home/ec2-user/ngs_analysis || exit
-                ./run_all_batches.sh
-
+                sh check_interruption_notice.sh > /var/log/check_interruption.log 2>&1 &
+                ./run_all_batches_checkpoint.sh
+                
                 echo "Retrieving the instance ID using ec2-metadata..."
                 INSTANCE_ID=$(ec2-metadata -i | cut -d " " -f 2)
                 echo "Instance ID retrieved: $INSTANCE_ID"
@@ -969,10 +975,10 @@ def main():
     Main function.
     """
 
-    cancel_spot_requests()
-    empty_buckets()
-
-    run_parallel_updates()
+    # cancel_spot_requests()
+    # empty_buckets()
+    #
+    # run_parallel_updates()
 
     if preferred_regions is None or preferred_regions == ['None']:
         suitable_regions = evaluate_regions_for_spot_instances(available_regions, Region_DynamoDBForSpotPlacementScore,

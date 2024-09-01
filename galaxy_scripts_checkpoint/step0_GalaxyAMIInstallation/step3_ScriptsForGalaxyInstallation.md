@@ -192,6 +192,9 @@ fi
 
 echo "API Key Updated successfully"
 
+# Set up the AWS CLI (needed for DynamoDB)
+aws configure 
+
 ```
 **4.5** Stop Galaxy for Making New AMI:
 

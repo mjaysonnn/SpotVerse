@@ -75,8 +75,7 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                 # Exporting AWS credentials for use in subsequent AWS CLI commands
                 export AWS_ACCESS_KEY_ID="{aws_credentials['AWS_ACCESS_KEY_ID']}"
                 export AWS_SECRET_ACCESS_KEY="{aws_credentials['AWS_SECRET_ACCESS_KEY']}"
-
-
+                
                 # Initializing the log
                 echo "Starting script" >/var/log/user-data.log                
                 
@@ -102,7 +101,8 @@ def generate_user_data_script(aws_credentials, sleep_time, complete_bucket_name)
                 sleep 300
                 
                 cd /home/ec2-user/ngs_analysis || exit
-                ./run_all_batches.sh
+                sh check_interruption_notice.sh > /var/log/check_interruption.log 2>&1 &
+                ./run_all_batches_checkpoint.sh
 
                 # Retrieve the instance ID using the ec2-metadata command
                 echo "Retrieving the instance ID using ec2-metadata..."

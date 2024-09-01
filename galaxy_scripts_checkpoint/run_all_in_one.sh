@@ -12,6 +12,7 @@ declare -a step2_scripts=(
   "step2_IAMAndDynamoDB/creation/step2_IAMForAdmin.sh"
   "step2_IAMAndDynamoDB/creation/step3_DynamoForSpotInterruptionRatio.sh"
   "step2_IAMAndDynamoDB/creation/step4_DynamoForSpotPlacementScore.sh"
+  "step2_IAMAndDynamoDB/creation/step5_DynamoForCheckpoint.sh"
 )
 
 # step3_scripts will be run sequentially
