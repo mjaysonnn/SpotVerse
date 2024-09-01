@@ -1,8 +1,11 @@
-Contains the scripts specifically for deploying the Galaxy framework. This directory includes an additional step0 where
-we create a Galaxy-equipped AMI and install the necessary workflows to run Galaxy applications. To run Galaxy workloads,
-an AMI pre-configured with Galaxy is required.
+This is a standard script where it starts the workload from scratch when an interruption happens. 
+
+It contains the scripts specifically for deploying the Galaxy framework. 
+This directory includes an additional step0 where we create a Galaxy-equipped AMI and install the necessary workflows to run Galaxy applications. 
+To run Galaxy workloads, an AMI pre-configured with Galaxy is required.
 
 Follow step0 folders to create an AMI with Galaxy installed and the necessary workflows to run Galaxy applications.
+
 
 ## Installation Guide (On AWS)
 

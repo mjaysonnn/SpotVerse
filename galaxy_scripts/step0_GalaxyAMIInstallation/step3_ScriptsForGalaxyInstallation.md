@@ -56,7 +56,7 @@ cp config/galaxy.yml.sample config/galaxy.yml
 
 # Configure galaxy settings
 sed -i '53c\    bind: "0.0.0.0:8080"' config/galaxy.yml
-sed -i '1729c\  admin_users: mjs8612@gmail.com' config/galaxy.yml
+sed -i '1729c\  admin_users: <>>@gmail.com' config/galaxy.yml
 
 # Start galaxy
 sh run.sh
@@ -71,7 +71,8 @@ sh run.sh
 #source venv/bin/activate
 
 echo "Installing Data Analysis Tools"
-git clone https://github.com/mjaysonnn/ngs_analysis.git
+# Hiding the name due to double-annoymous policy
+git clone https://github.com/<>>/ngs_analysis.git 
 
 echo "Downloading Data"
 echo "Downloading SRA-Toolkit & SRR25195166"
