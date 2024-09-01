@@ -1,0 +1,27 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template that sets up permissions and events to invoke a Lambda function that checks Spot Instance prices every hour.'
+
+Parameters:
+  LambdaFunctionRegion:
+    Type: String
+    Description: The AWS region where the Lambda function is deployed
+    Default: us-east-1
+
+Resources:
+  LambdaInvokePermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      # Using the full ARN of the existing Lambda function with a region parameter
+      FunctionName: !Sub "arn:aws:lambda:${LambdaFunctionRegion}:${AWS::AccountId}:function:lambda_for_updating_spot_price"
+      Principal: "events.amazonaws.com"
+
+  SpotPriceCheckEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Description: "Event Rule to invoke Lambda function to check Spot Instance prices every 1 hour."
+      ScheduleExpression: "rate(60 minutes)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Sub "arn:aws:lambda:${LambdaFunctionRegion}:${AWS::AccountId}:function:lambda_for_updating_spot_price"
+          Id: "SpotPlacementScoreCheckTarget"
