@@ -1,7 +1,9 @@
-import boto3
-import os
 import configparser
+import os
 from pathlib import Path
+
+import boto3
+
 
 def import_key_pair_to_region(key_name, key_file_path, region_name):
     """
@@ -32,6 +34,7 @@ def import_key_pair_to_region(key_name, key_file_path, region_name):
         print(f"Key pair '{key_name}' imported successfully to region '{region_name}'.")
     except ec2.exceptions.ClientError as e:
         print(f"Error importing key pair to region '{region_name}': {str(e)}")
+
 
 if __name__ == "__main__":
     # Define the path to the conf.ini file located in the upper parent directory

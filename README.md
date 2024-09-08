@@ -16,6 +16,7 @@ variety of other workloads as well.
 
 - **current_directory**: Contains the scripts for running non-Galaxy standard workload. The workload starts from scratch when an interruption happens.
 
+
 ## Installation Guide (On AWS)
 
 ### Prerequisites

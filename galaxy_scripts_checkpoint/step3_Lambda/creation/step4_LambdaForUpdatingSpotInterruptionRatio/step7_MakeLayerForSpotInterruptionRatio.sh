@@ -80,6 +80,8 @@ echo "Updating Lambda function configuration with the new layer version in regio
 aws lambda update-function-configuration \
   --function-name "lambda_spot_interruption_ratio_inserter" \
   --layers $layer_version_arn \
-  --region $aws_region
+  --region $aws_region \
+  --no-cli-pager
+
 
 echo "Script completed successfully!"
