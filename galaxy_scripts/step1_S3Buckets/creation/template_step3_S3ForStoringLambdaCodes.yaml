@@ -9,7 +9,7 @@ Parameters:
   BucketPrefix:
     Description: The prefix for the S3 bucket name.
     Type: String
-    Default: "mj-aws-lambda-code"
+    Default: "xx-aws-lambda-code"
     AllowedPattern: "[a-zA-Z0-9-]*"
     ConstraintDescription: Bucket prefix can include numbers, lowercase letters, and hyphens.
 

@@ -1,8 +1,14 @@
+
+# Galaxy Framework Deployment with Checkpointing
+
+This repository contains scripts for deploying the Galaxy framework on AWS, with a focus on implementing a checkpointing mechanism for batch processing workloads. The checkpointing system allows new spot instances to resume work from where previous instances left off, using DynamoDB to store and retrieve batch progress information.
+
 Contains the scripts specifically for deploying the Galaxy framework. This directory includes an additional step0 where
 we create a Galaxy-equipped AMI and install the necessary workflows to run Galaxy applications. To run Galaxy workloads,
 an AMI pre-configured with Galaxy is required.
 
 Follow step0 folders to create an AMI with Galaxy installed and the necessary workflows to run Galaxy applications.
+Also contains creating DynamoDB table for checkpointing.
 
 ## Installation Guide (On AWS)
 

@@ -709,7 +709,7 @@ def launch_all_spot_instances(response_dict):
     instances_per_region, remainder = divmod(number_of_instances_to_launch, total_regions)
     print(f"Instances per region: {instances_per_region}, Remainder: {remainder}")
     regions_received_extra_instance = set()
-    key_name = 'mjay_m1'
+    key_name = 'xxay_m1'
 
     for region, response in response_dict.items():
         ec2_client = boto3.client('ec2', region_name=region)

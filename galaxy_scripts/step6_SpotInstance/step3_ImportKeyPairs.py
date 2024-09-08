@@ -48,8 +48,8 @@ if __name__ == "__main__":
     regions_to_use = [region.strip() for region in regions_string.split(',') if region.strip()]
 
     # Define the key pair name and key file path
-    key_name = "mjay_m1"  # The desired name for the key pair in AWS
-    key_file_path = os.path.expanduser("~/.ssh/mjay_m1.pub")  # Path to the public key file
+    key_name = "xxay_m1"  # The desired name for the key pair in AWS
+    key_file_path = os.path.expanduser("~/.ssh/xxay_m1.pub")  # Path to the public key file
 
     # Import the key pair into each region specified in the 'regions_to_use'
     for region in regions_to_use:

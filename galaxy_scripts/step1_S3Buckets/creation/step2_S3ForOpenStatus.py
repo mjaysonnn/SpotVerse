@@ -113,7 +113,7 @@ def print_details(default_region, experiment_default_region):
 
 def create_spot_tracking_bucket(default_region, experiment_default_region):
     print(f"Creating bucket for region: {default_region}")
-    bucket_name = generate_bucket_name("mj-spotrequestcheck", experiment_default_region)
+    bucket_name = generate_bucket_name("xx-spotrequestcheck", experiment_default_region)
     s3_client = initialize_s3_client()
     create_bucket(s3_client, bucket_name, default_region)
     return bucket_name

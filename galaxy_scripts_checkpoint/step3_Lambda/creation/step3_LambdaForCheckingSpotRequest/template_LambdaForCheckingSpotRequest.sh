@@ -8,7 +8,7 @@ Parameters:
   LambdaCodeBucket:
     Description: Name of the S3 bucket containing the Lambda function code.
     Type: String
-    Default: mj-aws-lambda-code-us-east-1  # Default bucket name
+    Default: xx-aws-lambda-code-us-east-1  # Default bucket name
 
   LambdaCodeS3Key:
     Description: S3 key for the Lambda function code.
