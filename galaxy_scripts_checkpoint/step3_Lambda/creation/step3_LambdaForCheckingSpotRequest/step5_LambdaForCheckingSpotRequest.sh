@@ -2,8 +2,6 @@
 
 # Single Region Lambda Deployment Script
 
-CONDA_BASE=$(conda info --base)
-source "$CONDA_BASE/etc/profile.d/conda.sh"
 
 # Function to Zip and Upload Lambda Code to S3
 zip_and_upload() {

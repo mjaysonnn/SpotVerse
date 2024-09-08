@@ -1,6 +1,8 @@
 import configparser
 from pathlib import Path
+
 import boto3
+
 
 # This script is designed to copy an Amazon Machine Image (AMI) from a specified source region
 # to multiple target regions. After copying, it saves the AMI IDs for each region in a file
@@ -47,10 +49,10 @@ config = configparser.ConfigParser()
 config.read(str(config_path))
 
 # Set source region
-source_region = "us-east-1" # Replace this with your actual source region
+source_region = "us-east-1"  # Replace this with your actual source region
 
 # Manually specify the source AMI ID
-source_ami_id = "ami-08fd806202c123726"  # Replace this with your actual AMI ID
+source_ami_id = "ami-082f7792a68d31ded"  # Replace this with your actual AMI ID
 
 # Extract the 'regions' entry from the 'settings' section
 regions_string = config.get('settings', 'regions_to_use')
@@ -78,5 +80,6 @@ with open(copied_ami_ids_file, 'w') as f:
         f.write(f"{region} {ami_id}\n")
 
 # This `ami_ids.txt` file will be used later for deploying Lambda functions and EC2 instances.
-print(f"Source AMI ID and copied AMI IDs have been saved to '{copied_ami_ids_file}' in the same directory as the script")
+print(
+    f"Source AMI ID and copied AMI IDs have been saved to '{copied_ami_ids_file}' in the same directory as the script")
 print(f"Give some time for the AMIs to be fully copied before proceeding with the next steps.")

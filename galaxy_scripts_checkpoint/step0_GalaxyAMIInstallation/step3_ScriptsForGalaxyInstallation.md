@@ -26,8 +26,9 @@
 
 # Exporting AWS Credentials
 # Use credentials.txt generated from step0_CopyAWSCredentials.py
-export AWS_ACCESS_KEY_ID="AKIAYG7SHZZKQXDR5EWF"
-export AWS_SECRET_ACCESS_KEY="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"
+export AWS_ACCESS_KEY_ID="AKIA4UHZBQUHTOVFXRVH"
+export AWS_SECRET_ACCESS_KEY="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"
+
 
 # Update and upgrade the system packages
 sudo yum update -y
@@ -154,7 +155,9 @@ Register using email used in the `config/galaxy.yml` file.
 
 go to preferences and generate an API key.
 
-Manage API Key:
+Manage API Key: 
+
+
 
 
 **4.2** Generate an API Key.
@@ -179,7 +182,7 @@ Wait for workflow installation to complete.
 cd /home/ec2-user/ngs_analysis || { echo "Failed to change directory. Exiting."; exit 1; }
 echo "Changed directory to /home/ec2-user/ngs_analysis"
 
-NEW_API_KEY="c301fc88be62c4241cc1a26ed2d2f478"
+NEW_API_KEY="fe52028aeca64c8b588c7b1b043b7fe3"
 echo "Setting new API key: ${NEW_API_KEY}"
 
 if grep -q "^galaxy_user_key=" conf.ini; then
@@ -206,6 +209,8 @@ aws configure
 - Fill in the image details and create the image.
 - Take a note for the AMI ID. We would need this to copy to other regions.
 - Wait for the AMI creation to complete.
+
+
 
 ### **6. Next Steps**
 - Running `copy_ami_to_other_regions.py` would copy the AMI to the specified regions.

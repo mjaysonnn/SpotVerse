@@ -11,6 +11,7 @@ variety of other workloads as well.
   Galaxy-equipped AMI and install the necessary workflows to run Galaxy applications. To run Galaxy workloads, an AMI
   pre-configured with Galaxy is required.
 
+
 ## Installation Guide (On AWS)
 
 ### Prerequisites

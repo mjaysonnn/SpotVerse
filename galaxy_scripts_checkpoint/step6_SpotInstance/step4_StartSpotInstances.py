@@ -260,6 +260,8 @@ def launch_spot_instance(ec2_client, spot_price, ami_id, inst_type, key_name, se
                 
                 cd /home/ec2-user/ngs_analysis || exit
                 sh check_interruption_notice.sh > /var/log/check_interruption.log 2>&1 &
+                
+                echo "Running all batches..."
                 ./run_all_batches_checkpoint.sh
                 
                 echo "Retrieving the instance ID using ec2-metadata..."

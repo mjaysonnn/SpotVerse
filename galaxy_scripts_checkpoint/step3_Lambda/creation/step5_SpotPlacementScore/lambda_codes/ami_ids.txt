@@ -1,1 +1,1 @@
-us-east-1 ami-08fd806202c123726
+us-east-1 ami-02ba188ed8a8008f5
