@@ -72,7 +72,7 @@ sh run.sh
 
 echo "Installing Data Analysis Tools"
 # Hiding the name due to double-annoymous policy
-git clone https://github.com/<>>/ngs_analysis.git 
+git clone https://github.com/mjaysonnn/ngs_analysis.git 
 
 echo "Downloading Data"
 echo "Downloading SRA-Toolkit & SRR25195166"
